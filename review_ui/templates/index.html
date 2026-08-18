@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Human Review Gate — Legacy Migration</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2e38;
+    --text: #e6e8eb;
+    --muted: #8b909c;
+    --accent: #5b8cff;
+    --danger: #ff6b6b;
+    --warn: #ffb020;
+    --good: #35c46b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    margin: 0;
+    padding: 32px;
+    line-height: 1.5;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); margin-bottom: 24px; font-size: 14px; }
+  .summary-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  .stat b { font-size: 18px; display: block; }
+  .stat.pending b { color: var(--warn); }
+  .stat.resolved b { color: var(--good); }
+  .stat.auto b { color: var(--accent); }
+
+  section { margin-bottom: 36px; }
+  section > h2 {
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .card.pending { border-left: 3px solid var(--warn); }
+  .card.resolved { border-left: 3px solid var(--good); opacity: 0.85; }
+  .card.auto { border-left: 3px solid var(--accent); opacity: 0.7; }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .col-path { font-weight: 600; font-size: 15px; }
+  .confidence {
+    font-size: 13px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255,176,32,0.15);
+    color: var(--warn);
+  }
+  .card.resolved .confidence, .card.auto .confidence {
+    background: rgba(53,196,107,0.12);
+    color: var(--good);
+  }
+
+  .field { margin: 10px 0; font-size: 13px; }
+  .field label { color: var(--muted); display: block; margin-bottom: 3px; }
+  .field .value { font-family: "SF Mono", Consolas, monospace; font-size: 13px; }
+  .edge-cases { color: var(--danger); }
+
+  textarea, input[type=text] {
+    width: 100%;
+    background: #0b0d11;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  textarea { min-height: 50px; resize: vertical; }
+
+  .actions { margin-top: 14px; display: flex; gap: 10px; align-items: center; }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button.secondary { background: #2a2e38; color: var(--text); }
+  button:hover { filter: brightness(1.1); }
+
+  details summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+  .note-shown {
+    margin-top: 8px;
+    font-size: 13px;
+    background: rgba(53,196,107,0.08);
+    border-radius: 6px;
+    padding: 8px 10px;
+  }
+
+  .finish-bar {
+    position: sticky;
+    bottom: 0;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+  }
+  #finish-msg { font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+{% macro review_form(m, submit_label, secondary_label) %}
+    <form method="post" action="/review/{{ m.prompt_id }}">
+      <div class="field"><label>Target column</label>
+        <input type="text" name="target_column" value="{{ m.target_column }}"></div>
+      <div class="field"><label>Transformation rule</label>
+        <textarea name="transformation_rule">{{ m.transformation_rule }}</textarea></div>
+      <div class="field"><label>Null handling</label>
+        <input type="text" name="null_handling" value="{{ m.null_handling }}"></div>
+      <div class="field"><label>Review note (required — explain your decision)</label>
+        <textarea name="override_note" placeholder="e.g. Confirmed with ops: 'X' and stray-cased/whitespace codes are data entry errors, treat as 'discharged'." required>{{ m.override_note or "" }}</textarea></div>
+      <div class="actions">
+        <button type="submit" name="decision" value="approve">{{ submit_label }}</button>
+        <button type="submit" name="decision" value="override" class="secondary">{{ secondary_label }}</button>
+      </div>
+    </form>
+{% endmacro %}
+{% macro history(m) %}
+  {% if m.revision_history %}
+  <details style="margin-top:10px;">
+    <summary>Revision history ({{ m.revision_history|length }} superseded)</summary>
+    {% for r in m.revision_history %}
+    <div class="note-shown" style="background: rgba(139,144,156,0.08);">
+      <div style="color: var(--muted); font-size:12px;">superseded {{ r.superseded_at }} — was "{{ r.decision }}"</div>
+      <div class="value" style="margin-top:4px;">{{ r.transformation_rule }}</div>
+      <div style="margin-top:4px;"><b>Note:</b> {{ r.note }}</div>
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+  {% if m.ai_original and m.ai_original.transformation_rule != m.transformation_rule %}
+  <details style="margin-top:8px;">
+    <summary>Original AI proposal</summary>
+    <div class="note-shown" style="background: rgba(91,140,255,0.08);">
+      <div class="value">{{ m.ai_original.transformation_rule }}</div>
+      {% if m.ai_original.target_column != m.target_column %}
+      <div style="margin-top:4px; color: var(--muted); font-size:12px;">target was <code>{{ m.ai_original.target_column }}</code></div>
+      {% endif %}
+    </div>
+  </details>
+  {% endif %}
+{% endmacro %}
+
+<h1>Human Review Gate</h1>
+<div class="subtitle">Confidence threshold: {{ threshold }} — mappings below this require a human decision before rule_generator can run.</div>
+
+<div class="summary-bar">
+  <div class="stat pending"><b>{{ pending|length }}</b>Pending review</div>
+  <div class="stat resolved"><b>{{ resolved|length }}</b>Resolved (gated)</div>
+  <div class="stat auto"><b>{{ auto_passed|length }}</b>Auto-passed (≥ threshold)</div>
+  <div class="stat"><b>{{ revised|length }}</b>Revised</div>
+  <div class="stat"><b>{{ total }}</b>Total mappings</div>
+</div>
+
+<section>
+  <h2>⚠ Pending review ({{ pending|length }})</h2>
+  {% if pending|length == 0 %}
+    <p style="color: var(--muted); font-size: 13px;">Nothing pending — all gated mappings have been reviewed.</p>
+  {% endif %}
+  {% for m in pending %}
+  <div class="card pending">
+    <div class="card-header">
+      <span class="col-path">{{ m.source_table }}.{{ m.source_column }} → {{ m.target_column }}</span>
+      <span class="confidence">confidence {{ "%.2f"|format(m.confidence) }}</span>
+    </div>
+    <div class="field"><label>Inferred meaning</label><div class="value">{{ m.inferred_meaning }}</div></div>
+    <div class="field"><label>Reasoning (why confidence is low)</label><div class="value">{{ m.reasoning }}</div></div>
+    {% if m.edge_cases %}
+    <div class="field"><label>Edge cases</label><div class="value edge-cases">{{ m.edge_cases|join(", ") }}</div></div>
+    {% endif %}
+
+    {{ review_form(m, "Approve as shown", "Save edits &amp; override") }}
+  </div>
+  {% endfor %}
+</section>
+
+<section>
+  <h2>✓ Resolved — gated &amp; reviewed ({{ resolved|length }})</h2>
+  {% if resolved|length == 0 %}
+    <p style="color: var(--muted); font-size: 13px;">No gated mappings reviewed yet.</p>
+  {% endif %}
+  {% for m in resolved %}
+  <div class="card resolved">
+    <div class="card-header">
+      <span class="col-path">{{ m.source_table }}.{{ m.source_column }} → {{ m.target_column }}</span>
+      <span class="confidence">confidence {{ "%.2f"|format(m.confidence) }} · {{ m.review_decision }}{% if m.revision_history %} · revised {{ m.revision_history|length }}×{% endif %}</span>
+    </div>
+    <div class="field"><label>Transformation rule</label><div class="value">{{ m.transformation_rule }}</div></div>
+    <div class="note-shown"><b>Reviewer note:</b> {{ m.override_note }}</div>
+    {{ history(m) }}
+    <details style="margin-top:10px;">
+      <summary style="color: var(--accent);">Revise this decision</summary>
+      <div style="margin-top:10px;">{{ review_form(m, "Re-approve", "Save revision") }}</div>
+    </details>
+  </div>
+  {% endfor %}
+</section>
+
+<section>
+  <details>
+    <summary>Auto-passed mappings ({{ auto_passed|length }}) — confidence ≥ {{ threshold }}, no review required</summary>
+    <p style="color: var(--muted); font-size: 13px; margin-top:10px;">
+      These cleared the gate automatically. A high confidence score is not a guarantee of
+      correctness, so they stay correctable — any change is recorded as a human decision
+      with a note, exactly like a gated one.
+    </p>
+    {% for m in auto_passed %}
+    <div class="card auto">
+      <div class="card-header">
+        <span class="col-path">{{ m.source_table }}.{{ m.source_column }} → {{ m.target_column }}</span>
+        <span class="confidence">confidence {{ "%.2f"|format(m.confidence) }}{% if m.human_reviewed %} · {{ m.review_decision }}{% endif %}{% if m.revision_history %} · revised {{ m.revision_history|length }}×{% endif %}</span>
+      </div>
+      <div class="field"><label>Transformation rule</label><div class="value">{{ m.transformation_rule }}</div></div>
+      {% if m.override_note %}<div class="note-shown"><b>Reviewer note:</b> {{ m.override_note }}</div>{% endif %}
+      {{ history(m) }}
+      <details style="margin-top:10px;">
+        <summary style="color: var(--accent);">Correct this mapping</summary>
+        <div style="margin-top:10px;">{{ review_form(m, "Confirm as correct", "Save correction") }}</div>
+      </details>
+    </div>
+    {% endfor %}
+  </details>
+</section>
+
+<div class="finish-bar">
+  <div>
+    {% if can_finish %}
+      <div style="color: var(--good); font-size: 13px;">✓ All gated mappings reviewed — ready to export.
+        {% if export_exists %}<br><span style="color: var(--muted);">An export already exists; exporting again overwrites it with your current decisions, including revisions.</span>{% endif %}
+      </div>
+    {% else %}
+      <div style="color: var(--warn); font-size: 13px;">{{ pending|length }} mapping(s) still need review.</div>
+    {% endif %}
+  </div>
+  <div>
+    <button onclick="finishReview()" {% if not can_finish %}disabled style="opacity:0.4; cursor:not-allowed;"{% endif %}>
+      {% if export_exists %}Re-export with revisions{% else %}Finish Review &amp; Export{% endif %}
+    </button>
+  </div>
+</div>
+<div id="finish-msg"></div>
+
+<script>
+async function finishReview() {
+  const res = await fetch('/finish', { method: 'POST' });
+  const data = await res.json();
+  const el = document.getElementById('finish-msg');
+  if (res.ok) {
+    el.style.color = 'var(--good)';
+    el.textContent = data.message;
+  } else {
+    el.style.color = 'var(--danger)';
+    el.textContent = data.error + (data.pending ? ' (' + data.pending.join(', ') + ')' : '');
+  }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "suite_name": "post_load__dept_master",
+  "expectations": [
+    {
+      "type": "expect_table_row_count_to_equal",
+      "value": 8
+    }
+  ]
+}

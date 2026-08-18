@@ -1,0 +1,35 @@
+{
+  "suite_name": "post_extraction__prv_tbl",
+  "expectations": [
+    {
+      "type": "expect_table_columns_to_match_set",
+      "column_set": [
+        "provider_id",
+        "provider_name",
+        "provider_type_code",
+        "dept_id",
+        "npi_number"
+      ]
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "provider_id"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "provider_name"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "provider_type_code"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "dept_id"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "npi_number"
+    }
+  ]
+}

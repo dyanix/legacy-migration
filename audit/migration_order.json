@@ -1,0 +1,24 @@
+{
+  "migration_order": [
+    "dept_master",
+    "patient_records",
+    "prv_tbl",
+    "enc_log",
+    "dx_codes"
+  ],
+  "dependency_graph": {
+    "dept_master": [],
+    "dx_codes": [
+      "enc_log"
+    ],
+    "enc_log": [
+      "patient_records",
+      "prv_tbl"
+    ],
+    "patient_records": [],
+    "prv_tbl": [
+      "dept_master"
+    ]
+  },
+  "table_count": 5
+}

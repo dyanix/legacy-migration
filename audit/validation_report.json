@@ -1,0 +1,1003 @@
+{
+  "run_at": "2026-08-12T19:29:42.037215+00:00",
+  "success": true,
+  "hard_failures": [],
+  "checkpoints": {
+    "source_baseline": [
+      {
+        "suite_name": "source_baseline__dept_master",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_be_between",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 8
+            }
+          },
+          {
+            "type": "expect_column_values_to_not_be_null",
+            "column": "dept_id",
+            "success": true,
+            "result": {
+              "element_count": 8,
+              "unexpected_count": 0
+            }
+          }
+        ],
+        "row_count": 8
+      },
+      {
+        "suite_name": "source_baseline__patient_records",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_be_between",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 12000
+            }
+          },
+          {
+            "type": "expect_column_values_to_not_be_null",
+            "column": "pat_id",
+            "success": true,
+            "result": {
+              "element_count": 12000,
+              "unexpected_count": 0
+            }
+          }
+        ],
+        "row_count": 12000
+      },
+      {
+        "suite_name": "source_baseline__prv_tbl",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_be_between",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 40
+            }
+          },
+          {
+            "type": "expect_column_values_to_not_be_null",
+            "column": "prv_id",
+            "success": true,
+            "result": {
+              "element_count": 40,
+              "unexpected_count": 0
+            }
+          }
+        ],
+        "row_count": 40
+      },
+      {
+        "suite_name": "source_baseline__enc_log",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_be_between",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 25000
+            }
+          },
+          {
+            "type": "expect_column_values_to_not_be_null",
+            "column": "enc_id",
+            "success": true,
+            "result": {
+              "element_count": 25000,
+              "unexpected_count": 0
+            }
+          }
+        ],
+        "row_count": 25000
+      },
+      {
+        "suite_name": "source_baseline__dx_codes",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_be_between",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 15080
+            }
+          },
+          {
+            "type": "expect_column_values_to_not_be_null",
+            "column": "dx_id",
+            "success": true,
+            "result": {
+              "element_count": 15080,
+              "unexpected_count": 0
+            }
+          }
+        ],
+        "row_count": 15080
+      }
+    ],
+    "post_extraction": [
+      {
+        "suite_name": "post_extraction__dept_master",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_columns_to_match_set",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": [
+                "department_name",
+                "dept_id",
+                "dept_location",
+                "is_active"
+              ]
+            }
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "dept_id",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "department_name",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "dept_location",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "is_active",
+            "success": true,
+            "result": {}
+          }
+        ],
+        "row_count": 8,
+        "target_columns": [
+          "dept_id",
+          "department_name",
+          "dept_location",
+          "is_active"
+        ]
+      },
+      {
+        "suite_name": "post_extraction__patient_records",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_columns_to_match_set",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": [
+                "admission_datetime",
+                "created_ts",
+                "date_of_birth",
+                "discharge_datetime",
+                "first_name",
+                "last_name",
+                "patient_id",
+                "patient_status_code",
+                "sex_code",
+                "updated_at"
+              ]
+            }
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "patient_id",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "patient_status_code",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "first_name",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "last_name",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "date_of_birth",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "sex_code",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "admission_datetime",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "discharge_datetime",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "created_ts",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "updated_at",
+            "success": true,
+            "result": {}
+          }
+        ],
+        "row_count": 12000,
+        "target_columns": [
+          "patient_id",
+          "patient_status_code",
+          "first_name",
+          "last_name",
+          "date_of_birth",
+          "sex_code",
+          "admission_datetime",
+          "discharge_datetime",
+          "created_ts",
+          "updated_at"
+        ]
+      },
+      {
+        "suite_name": "post_extraction__prv_tbl",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_columns_to_match_set",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": [
+                "dept_id",
+                "npi_number",
+                "provider_id",
+                "provider_name",
+                "provider_type_code"
+              ]
+            }
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "provider_id",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "provider_name",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "provider_type_code",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "dept_id",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "npi_number",
+            "success": true,
+            "result": {}
+          }
+        ],
+        "row_count": 40,
+        "target_columns": [
+          "provider_id",
+          "provider_name",
+          "provider_type_code",
+          "dept_id",
+          "npi_number"
+        ]
+      },
+      {
+        "suite_name": "post_extraction__enc_log",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_columns_to_match_set",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": [
+                "bill_amount",
+                "encounter_datetime",
+                "encounter_id",
+                "encounter_type_code",
+                "notes",
+                "patient_id",
+                "payment_status_code",
+                "provider_id"
+              ]
+            }
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "encounter_id",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "patient_id",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "provider_id",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "encounter_type_code",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "encounter_datetime",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "bill_amount",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "payment_status_code",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "notes",
+            "success": true,
+            "result": {}
+          }
+        ],
+        "row_count": 25000,
+        "target_columns": [
+          "encounter_id",
+          "patient_id",
+          "provider_id",
+          "encounter_type_code",
+          "encounter_datetime",
+          "bill_amount",
+          "payment_status_code",
+          "notes"
+        ]
+      },
+      {
+        "suite_name": "post_extraction__dx_codes",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_columns_to_match_set",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": [
+                "diagnosis_code",
+                "dx_description",
+                "dx_id",
+                "encounter_id",
+                "is_primary_diagnosis"
+              ]
+            }
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "dx_id",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "encounter_id",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "diagnosis_code",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "dx_description",
+            "success": true,
+            "result": {}
+          },
+          {
+            "type": "expect_column_to_exist",
+            "column": "is_primary_diagnosis",
+            "success": true,
+            "result": {}
+          }
+        ],
+        "row_count": 15080,
+        "target_columns": [
+          "dx_id",
+          "encounter_id",
+          "diagnosis_code",
+          "dx_description",
+          "is_primary_diagnosis"
+        ]
+      }
+    ],
+    "post_load": [
+      {
+        "suite_name": "post_load__dept_master",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_equal",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 8
+            }
+          }
+        ],
+        "row_count": 8
+      },
+      {
+        "suite_name": "post_load__patient_records",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_equal",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 12000
+            }
+          }
+        ],
+        "row_count": 12000
+      },
+      {
+        "suite_name": "post_load__prv_tbl",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_equal",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 40
+            }
+          }
+        ],
+        "row_count": 40
+      },
+      {
+        "suite_name": "post_load__enc_log",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_equal",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 25000
+            }
+          }
+        ],
+        "row_count": 25000
+      },
+      {
+        "suite_name": "post_load__dx_codes",
+        "success": true,
+        "expectations": [
+          {
+            "type": "expect_table_row_count_to_equal",
+            "column": null,
+            "success": true,
+            "result": {
+              "observed_value": 15080
+            }
+          }
+        ],
+        "row_count": 15080
+      }
+    ]
+  },
+  "reconciliation": [
+    {
+      "table": "dept_master",
+      "source_row_count": 8,
+      "target_row_count": 8,
+      "rows_reported_migrated": 8,
+      "expected_row_count": 8,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "dept_id",
+          "target_column": "dept_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "": 1
+          },
+          "target_value_counts": {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1
+          }
+        },
+        {
+          "source_column": "dept_nm",
+          "target_column": "department_name",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "Rodriguez, Figueroa and Sanchez Dept": 1,
+            "Mcclain, Miller and Henderson Dept": 1,
+            "Johnson, Gonzalez and Santos Dept": 1,
+            "Pacheco-Smith Dept": 1,
+            "Moore-Bernard Dept": 1,
+            "Howard LLC Dept": 1,
+            "Martinez, Nielsen and Miller Dept": 1,
+            "Lee, Jones and Stanley Dept": 1
+          },
+          "target_value_counts": {
+            "Rodriguez, Figueroa and Sanchez Dept": 1,
+            "Mcclain, Miller and Henderson Dept": 1,
+            "Johnson, Gonzalez and Santos Dept": 1,
+            "Pacheco-Smith Dept": 1,
+            "Moore-Bernard Dept": 1,
+            "Howard LLC Dept": 1,
+            "Martinez, Nielsen and Miller Dept": 1,
+            "Lee, Jones and Stanley Dept": 1
+          }
+        },
+        {
+          "source_column": "dept_loc",
+          "target_column": "dept_location",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "Lake Curtis": 1,
+            "North Jefferyhaven": 1,
+            "Robinsonshire": 1,
+            "Lake Roberto": 1,
+            "Curtisfurt": 1,
+            "Lindsaymouth": 1,
+            "Mariastad": 1,
+            "Traciebury": 1
+          },
+          "target_value_counts": {
+            "Lake Curtis": 1,
+            "North Jefferyhaven": 1,
+            "Robinsonshire": 1,
+            "Lake Roberto": 1,
+            "Curtisfurt": 1,
+            "Lindsaymouth": 1,
+            "Mariastad": 1,
+            "Traciebury": 1
+          }
+        },
+        {
+          "source_column": "active_flg",
+          "target_column": "is_active",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "Y": 8
+          },
+          "target_value_counts": {
+            "1": 8
+          }
+        }
+      ],
+      "hard_failures": []
+    },
+    {
+      "table": "patient_records",
+      "source_row_count": 12000,
+      "target_row_count": 12000,
+      "rows_reported_migrated": 12000,
+      "expected_row_count": 12000,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "pat_id",
+          "target_column": "patient_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "pat_st_cd",
+          "target_column": "patient_status_code",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "A": 4959,
+            "D": 3661,
+            "I": 1784,
+            "S": 1234,
+            " D": 232,
+            "X": 130
+          },
+          "target_value_counts": {
+            "A": 4959,
+            "D": 3893,
+            "I": 1784,
+            "S": 1234,
+            "X": 130
+          }
+        },
+        {
+          "source_column": "fst_nm",
+          "target_column": "first_name",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "lst_nm",
+          "target_column": "last_name",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "dob",
+          "target_column": "date_of_birth",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "sex_cd",
+          "target_column": "sex_code",
+          "source_null_rate": 0.0184,
+          "target_null_rate": 0.0184,
+          "source_value_counts": {
+            "M": 5728,
+            "F": 5558,
+            "U": 493
+          },
+          "target_value_counts": {
+            "MALE": 5728,
+            "FEMALE": 5558,
+            "UNKNOWN": 493,
+            "null": 221
+          }
+        },
+        {
+          "source_column": "admit_dt",
+          "target_column": "admission_datetime",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "discharge_dt",
+          "target_column": "discharge_datetime",
+          "source_null_rate": 0.1488,
+          "target_null_rate": 0.1488
+        },
+        {
+          "source_column": "created_ts",
+          "target_column": "created_ts",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "atetime.datetime(2026, 8, 1, 14, 23, 14": 3273,
+            "atetime.datetime(2026, 8, 1, 14, 23, 16": 3261,
+            "atetime.datetime(2026, 8, 1, 14, 23, 15": 3144,
+            "atetime.datetime(2026, 8, 1, 14, 23, 13": 1583,
+            "atetime.datetime(2026, 8, 1, 14, 23, 17": 739
+          },
+          "target_value_counts": {
+            "1785594194000000000": 3273,
+            "1785594196000000000": 3261,
+            "1785594195000000000": 3144,
+            "1785594193000000000": 1583,
+            "1785594197000000000": 739
+          }
+        },
+        {
+          "source_column": "updated_ts",
+          "target_column": "updated_at",
+          "source_null_rate": 1.0,
+          "target_null_rate": 1.0
+        }
+      ],
+      "hard_failures": []
+    },
+    {
+      "table": "prv_tbl",
+      "source_row_count": 40,
+      "target_row_count": 40,
+      "rows_reported_migrated": 40,
+      "expected_row_count": 40,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "prv_id",
+          "target_column": "provider_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "prv_nm",
+          "target_column": "provider_name",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "prv_typ_cd",
+          "target_column": "provider_type_code",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "MD": 13,
+            "DO": 10,
+            "NP": 9,
+            "PA": 8
+          },
+          "target_value_counts": {
+            "MD": 13,
+            "DO": 10,
+            "NP": 9,
+            "PA": 8
+          }
+        },
+        {
+          "source_column": "dept_id",
+          "target_column": "dept_id",
+          "source_null_rate": 0.2,
+          "target_null_rate": 0.2,
+          "source_value_counts": {
+            "": 2
+          },
+          "target_value_counts": {
+            "null": 8,
+            "6": 8,
+            "4": 6,
+            "2": 6,
+            "3": 4,
+            "1": 3,
+            "7": 3,
+            "5": 2
+          }
+        },
+        {
+          "source_column": "npi_num",
+          "target_column": "npi_number",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        }
+      ],
+      "hard_failures": []
+    },
+    {
+      "table": "enc_log",
+      "source_row_count": 25000,
+      "target_row_count": 25000,
+      "rows_reported_migrated": 25000,
+      "expected_row_count": 25000,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "enc_id",
+          "target_column": "encounter_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "pat_id",
+          "target_column": "patient_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "prv_id",
+          "target_column": "provider_id",
+          "source_null_rate": 0.1001,
+          "target_null_rate": 0.1001
+        },
+        {
+          "source_column": "enc_typ_cd",
+          "target_column": "encounter_type_code",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "ER": 6325,
+            "OP": 6252,
+            "TC": 6215,
+            "IP": 6208
+          },
+          "target_value_counts": {
+            "ER": 6325,
+            "OP": 6252,
+            "TC": 6215,
+            "IP": 6208
+          }
+        },
+        {
+          "source_column": "enc_dt",
+          "target_column": "encounter_datetime",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "bill_amt",
+          "target_column": "bill_amount",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "pmt_st_cd",
+          "target_column": "payment_status_code",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "P": 12451,
+            "U": 7499,
+            "W": 3058,
+            "R": 1506,
+            "?": 486
+          },
+          "target_value_counts": {
+            "P": 12451,
+            "U": 7499,
+            "W": 3058,
+            "R": 1506,
+            "?": 486
+          }
+        },
+        {
+          "source_column": "notes_txt",
+          "target_column": "notes",
+          "source_null_rate": 0.7028,
+          "target_null_rate": 0.7028
+        }
+      ],
+      "hard_failures": []
+    },
+    {
+      "table": "dx_codes",
+      "source_row_count": 15080,
+      "target_row_count": 15080,
+      "rows_reported_migrated": 15080,
+      "expected_row_count": 15080,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "dx_id",
+          "target_column": "dx_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "enc_id",
+          "target_column": "encounter_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "dx_cd",
+          "target_column": "diagnosis_code",
+          "source_null_rate": 0.1016,
+          "target_null_rate": 0.1016,
+          "source_value_counts": {
+            "N39.0": 1582,
+            "R51": 1579,
+            "E11.9": 1542,
+            "J45.909": 1525,
+            "Z00.00": 1506,
+            "TBD": 1490,
+            "I10": 1457,
+            "M54.5": 1438,
+            "K21.9": 1429
+          },
+          "target_value_counts": {
+            "N39.0": 1582,
+            "R51": 1579,
+            "E11.9": 1542,
+            "null": 1532,
+            "J45.909": 1525,
+            "Z00.00": 1506,
+            "TBD": 1490,
+            "I10": 1457,
+            "M54.5": 1438,
+            "K21.9": 1429
+          }
+        },
+        {
+          "source_column": "dx_desc",
+          "target_column": "dx_description",
+          "source_null_rate": 0.6029,
+          "target_null_rate": 0.6029
+        },
+        {
+          "source_column": "primary_flg",
+          "target_column": "is_primary_diagnosis",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "N": 7639,
+            "Y": 7441
+          },
+          "target_value_counts": {
+            "0": 7639,
+            "1": 7441
+          }
+        }
+      ],
+      "hard_failures": []
+    }
+  ],
+  "dbt": {
+    "attempted": true,
+    "returncode": 0,
+    "models_generated": 7,
+    "tables_covered": [
+      "dept_master",
+      "dx_codes",
+      "enc_log",
+      "patient_records",
+      "prv_tbl"
+    ],
+    "stdout": "37  15 of 20 START test not_null_stg_enc_log_encounter_id .......................... [RUN]\n\u001b[0m19:29:37  12 of 20 PASS unique_stg_dx_codes_dx_id ........................................ [\u001b[32mPASS\u001b[0m in 0.29s]\n\u001b[0m19:29:37  16 of 20 START test relationships_stg_dx_codes_encounter_id__encounter_id__ref_stg_enc_log_  [RUN]\n\u001b[0m19:29:37  13 of 20 PASS not_null_stg_patient_records_patient_id .......................... [\u001b[32mPASS\u001b[0m in 0.26s]\n\u001b[0m19:29:37  17 of 20 START test relationships_stg_enc_log_patient_id__patient_id__ref_stg_patient_records_  [RUN]\n\u001b[0m19:29:37  14 of 20 PASS unique_stg_patient_records_patient_id ............................ [\u001b[32mPASS\u001b[0m in 0.33s]\n\u001b[0m19:29:37  18 of 20 START test relationships_stg_enc_log_provider_id__provider_id__ref_stg_prv_tbl_  [RUN]\n\u001b[0m19:29:37  15 of 20 PASS not_null_stg_enc_log_encounter_id ................................ [\u001b[32mPASS\u001b[0m in 0.33s]\n\u001b[0m19:29:37  19 of 20 START test unique_stg_enc_log_encounter_id ............................ [RUN]\n\u001b[0m19:29:37  16 of 20 PASS relationships_stg_dx_codes_encounter_id__encounter_id__ref_stg_enc_log_  [\u001b[32mPASS\u001b[0m in 0.36s]\n\u001b[0m19:29:37  17 of 20 PASS relationships_stg_enc_log_patient_id__patient_id__ref_stg_patient_records_  [\u001b[32mPASS\u001b[0m in 0.37s]\n\u001b[0m19:29:38  19 of 20 PASS unique_stg_enc_log_encounter_id .................................. [\u001b[32mPASS\u001b[0m in 0.32s]\n\u001b[0m19:29:38  18 of 20 PASS relationships_stg_enc_log_provider_id__provider_id__ref_stg_prv_tbl_  [\u001b[32mPASS\u001b[0m in 0.35s]\n\u001b[0m19:29:38  20 of 20 START sql view model PUBLIC.reconciliation_summary .................... [RUN]\n\u001b[0m19:29:38  20 of 20 OK created sql view model PUBLIC.reconciliation_summary ............... [\u001b[32mSUCCESS 1\u001b[0m in 0.38s]\n\u001b[0m19:29:40  \n\u001b[0m19:29:40  Finished running 14 data tests, 6 view models in 0 hours 0 minutes and 6.20 seconds (6.20s).\n\u001b[0m19:29:40  \n\u001b[0m19:29:40  \u001b[32mCompleted successfully\u001b[0m\n\u001b[0m19:29:40  \n\u001b[0m19:29:40  Done. PASS=20 WARN=0 ERROR=0 SKIP=0 NO-OP=0 TOTAL=20\n",
+    "stderr": ""
+  }
+}

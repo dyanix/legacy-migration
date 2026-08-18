@@ -1,0 +1,30 @@
+{
+  "suite_name": "post_extraction__dept_master",
+  "expectations": [
+    {
+      "type": "expect_table_columns_to_match_set",
+      "column_set": [
+        "dept_id",
+        "department_name",
+        "dept_location",
+        "is_active"
+      ]
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "dept_id"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "department_name"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "dept_location"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "is_active"
+    }
+  ]
+}

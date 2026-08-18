@@ -1,0 +1,13 @@
+{
+  "suite_name": "source_baseline__enc_log",
+  "expectations": [
+    {
+      "type": "expect_table_row_count_to_be_between",
+      "min_value": 1
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "column": "enc_id"
+    }
+  ]
+}

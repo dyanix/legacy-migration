@@ -1,0 +1,50 @@
+{
+  "suite_name": "post_extraction__enc_log",
+  "expectations": [
+    {
+      "type": "expect_table_columns_to_match_set",
+      "column_set": [
+        "encounter_id",
+        "patient_id",
+        "provider_id",
+        "encounter_type_code",
+        "encounter_datetime",
+        "bill_amount",
+        "payment_status_code",
+        "notes"
+      ]
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "encounter_id"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "patient_id"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "provider_id"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "encounter_type_code"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "encounter_datetime"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "bill_amount"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "payment_status_code"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "notes"
+    }
+  ]
+}

@@ -1,0 +1,1482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI-Assisted Legacy Migration – FDE Capstone | Problem Statement</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:        #0a0e17;
+    --bg2:       #0f1623;
+    --bg3:       #161d2e;
+    --border:    #1e2d45;
+    --accent:    #00d4aa;
+    --accent2:   #3b82f6;
+    --accent3:   #f59e0b;
+    --accent4:   #ef4444;
+    --accent5:   #a78bfa;
+    --text:      #e2e8f0;
+    --text2:     #94a3b8;
+    --text3:     #64748b;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Sora', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+  }
+
+  .logo-text {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text);
+  }
+  .logo-sub { font-size: 10px; color: var(--text3); font-weight: 400; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .sidebar-section { display: flex; flex-direction: column; gap: 6px; }
+  .sidebar-label { font-size: 9px; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text3); padding: 0 8px 6px; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 6px;
+    font-size: 12px; color: var(--text2);
+    cursor: pointer; transition: all 0.15s;
+    border: 1px solid transparent;
+    text-decoration: none;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: rgba(0,212,170,0.08); border-color: rgba(0,212,170,0.2); color: var(--accent); }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  .meta-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .meta-row { display: flex; align-items: center; justify-content: space-between; }
+  .meta-key { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+  .meta-val { font-size: 11px; color: var(--text); font-family: var(--mono); }
+
+  .diff-stars { color: var(--accent3); letter-spacing: 2px; }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 4px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+    font-family: var(--mono);
+  }
+  .tag-green  { background: rgba(0,212,170,0.12); color: var(--accent); border: 1px solid rgba(0,212,170,0.25); }
+  .tag-blue   { background: rgba(59,130,246,0.12); color: var(--accent2); border: 1px solid rgba(59,130,246,0.25); }
+  .tag-amber  { background: rgba(245,158,11,0.12); color: var(--accent3); border: 1px solid rgba(245,158,11,0.25); }
+  .tag-red    { background: rgba(239,68,68,0.12);  color: var(--accent4); border: 1px solid rgba(239,68,68,0.25); }
+  .tag-purple { background: rgba(167,139,250,0.12);color: var(--accent5); border: 1px solid rgba(167,139,250,0.25); }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    padding: 40px 52px 80px;
+    max-width: 900px;
+  }
+
+  /* ── HEADER ── */
+  .problem-header {
+    margin-bottom: 36px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .problem-id {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+
+  .problem-title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    margin-bottom: 14px;
+    background: linear-gradient(90deg, #e2e8f0 60%, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .problem-subtitle {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 18px;
+    max-width: 680px;
+  }
+
+  .header-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* ── SECTION BLOCKS ── */
+  .section {
+    margin-bottom: 36px;
+  }
+
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    border: 1px solid var(--border);
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+  }
+
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border), transparent);
+  }
+
+  /* ── CONTENT ELEMENTS ── */
+  .prose {
+    color: var(--text2);
+    font-size: 13.5px;
+    line-height: 1.8;
+    max-width: 720px;
+  }
+  .prose strong { color: var(--text); font-weight: 600; }
+
+  /* Callout boxes */
+  .callout {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    border-left: 3px solid;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .callout-info  { background: rgba(59,130,246,0.07);  border-color: var(--accent2); }
+  .callout-warn  { background: rgba(245,158,11,0.07);  border-color: var(--accent3); }
+  .callout-error { background: rgba(239,68,68,0.07);   border-color: var(--accent4); }
+  .callout-tip   { background: rgba(0,212,170,0.07);   border-color: var(--accent); }
+  .callout-title { font-weight: 700; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; }
+  .callout-info  .callout-title { color: var(--accent2); }
+  .callout-warn  .callout-title { color: var(--accent3); }
+  .callout-error .callout-title { color: var(--accent4); }
+  .callout-tip   .callout-title { color: var(--accent); }
+  .callout p { color: var(--text2); }
+
+  /* Cards grid */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+
+  .card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card-icon { font-size: 20px; margin-bottom: 10px; }
+  .card-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+  .card-desc  { font-size: 11px; color: var(--text3); line-height: 1.6; }
+
+  /* Requirement list */
+  .req-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .req-item {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .req-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .req-content { flex: 1; }
+  .req-title { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .req-desc  { font-size: 12px; color: var(--text3); line-height: 1.6; }
+  .req-link  {
+    display: inline-block; margin-top: 6px;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--accent2); text-decoration: none;
+    border: 1px solid rgba(59,130,246,0.3);
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .req-link:hover { background: rgba(59,130,246,0.1); }
+
+  /* Code blocks */
+  .code-block {
+    background: #070c14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: #a8d8b9;
+    overflow-x: auto;
+    line-height: 1.7;
+  }
+  .code-block .comment { color: var(--text3); }
+  .code-block .key     { color: var(--accent2); }
+  .code-block .val     { color: var(--accent3); }
+  .code-block .str     { color: #f87171; }
+
+  /* Steps */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+
+  .step {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 0 16px;
+  }
+
+  .step-left {
+    display: flex; flex-direction: column; align-items: center;
+  }
+
+  .step-num {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; color: #000;
+    flex-shrink: 0;
+  }
+  .step-line { width: 1px; background: var(--border); flex: 1; margin: 4px 0; min-height: 16px; }
+
+  .step-content {
+    padding-bottom: 20px;
+  }
+  .step-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 5px; padding-top: 5px; }
+  .step-desc  { font-size: 12px; color: var(--text3); line-height: 1.7; }
+
+  /* IO table */
+  .io-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .io-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .io-header {
+    padding: 10px 16px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .io-header.input  { background: rgba(59,130,246,0.08); color: var(--accent2); }
+  .io-header.output { background: rgba(0,212,170,0.08);  color: var(--accent);  }
+
+  .io-items { padding: 12px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .io-item  { display: flex; align-items: center; gap: 10px; }
+  .io-bullet { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); flex-shrink: 0; }
+  .io-label  { font-size: 12px; color: var(--text2); }
+
+  /* Skills matrix */
+  .skills-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+
+  .skill-pill {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .skill-bar-wrap { flex: 1; }
+  .skill-name { font-size: 11px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+  .skill-bar-bg { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .skill-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+
+  /* Submission format */
+  .submission-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .submission-header {
+    background: rgba(0,212,170,0.06);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 700; color: var(--accent);
+  }
+  .submission-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+
+  .sub-field {
+    display: grid; grid-template-columns: 160px 1fr; gap: 12px; align-items: start;
+  }
+  .sub-key {
+    font-family: var(--mono); font-size: 11px; color: var(--text3);
+    padding-top: 2px;
+  }
+  .sub-val { font-size: 12px; color: var(--text2); line-height: 1.7; }
+  .sub-val code {
+    font-family: var(--mono); font-size: 11px;
+    background: rgba(0,0,0,0.4); padding: 1px 6px; border-radius: 3px;
+    color: var(--accent3);
+  }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 28px 0; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Responsive */
+  @media (max-width: 860px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+    .main { padding: 24px 20px 60px; }
+    .io-grid { grid-template-columns: 1fr; }
+    .sub-field { grid-template-columns: 1fr; }
+  }
+
+  /* Animate on load */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .section { animation: fadeUp 0.4s ease both; }
+  .section:nth-child(1) { animation-delay: 0.05s; }
+  .section:nth-child(2) { animation-delay: 0.1s; }
+  .section:nth-child(3) { animation-delay: 0.15s; }
+  .section:nth-child(4) { animation-delay: 0.2s; }
+  .section:nth-child(5) { animation-delay: 0.25s; }
+  .section:nth-child(6) { animation-delay: 0.3s; }
+  .section:nth-child(7) { animation-delay: 0.35s; }
+  .section:nth-child(8) { animation-delay: 0.4s; }
+
+  /* Print */
+  @media print {
+    body { background: white; color: black; }
+    .sidebar { display: none; }
+    .shell { display: block; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════ DISCLAIMER SCREEN ══════════ -->
+<div id="disclaimer-screen" style="
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+">
+
+  <div style="
+    max-width:800px;
+    background:var(--bg3);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:32px;
+  ">
+
+    <h1 style="
+      margin-bottom:20px;
+      font-size:28px;
+      color:var(--text);
+    ">
+      Data Privacy &amp; Acceptable Use Notice
+    </h1>
+
+    <p style="margin-bottom:16px;color:var(--text2);">
+      This assessment is intended solely for educational and evaluation purposes.
+    </p>
+
+    <p style="margin-bottom:16px;color:var(--text2);">
+      Participants must not upload, process, store, share, or expose any real personal data,
+      customer data, employee information, confidential business information, or other sensitive
+      information while completing this assessment.
+    </p>
+
+    <p style="margin-bottom:16px;color:var(--text2);">
+      All schemas, migration pipelines, databases, reports, and demonstrations must use
+      synthetic, anonymized, or mock data created specifically for assessment purposes.
+    </p>
+
+    <p style="margin-bottom:24px;color:var(--text2);">
+      By proceeding, you acknowledge that you understand and agree to comply with these requirements.
+    </p>
+
+    <button
+      onclick="showProblemStatement()"
+      style="
+        background:var(--accent);
+        color:black;
+        border:none;
+        padding:12px 24px;
+        border-radius:8px;
+        font-weight:700;
+        cursor:pointer;
+        font-family:var(--sans);
+        font-size:13px;
+      "
+    >
+      I Understand &amp; Continue
+    </button>
+
+  </div>
+
+</div>
+
+
+<div class="shell" id="problem-content" style="display:none;">
+
+  <!-- ════════════ SIDEBAR ════════════ -->
+  <aside class="sidebar">
+    <div class="logo-row">
+      <div class="logo-icon">🗄️</div>
+      <div>
+        <div class="logo-text">FDE Programme</div>
+        <div class="logo-sub">Data Engineering </div>
+      </div>
+    </div>
+
+    <!-- Quick Nav -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Sections</div>
+      <a href="#overview"       class="nav-item active"><span class="nav-dot"></span>Overview</a>
+      <a href="#problem"        class="nav-item"><span class="nav-dot"></span>Problem Statement</a>
+      <a href="#prerequisites"  class="nav-item"><span class="nav-dot"></span>Prerequisites</a>
+      <a href="#tools"          class="nav-item"><span class="nav-dot"></span>Tools &amp; Software</a>
+      <a href="#api-keys"       class="nav-item"><span class="nav-dot"></span>API Keys &amp; Access</a>
+      <a href="#architecture"   class="nav-item"><span class="nav-dot"></span>Architecture Guide</a>
+      <a href="#workflow"       class="nav-item"><span class="nav-dot"></span>LangGraph Workflow</a>
+      <a href="#rule-schema"    class="nav-item"><span class="nav-dot"></span>Rule Schema</a>
+      <a href="#prompting"      class="nav-item"><span class="nav-dot"></span>Prompting Discipline</a>
+      <a href="#io"             class="nav-item"><span class="nav-dot"></span>Inputs &amp; Outputs</a>
+      <a href="#antipatterns"   class="nav-item"><span class="nav-dot"></span>Failure Modes</a>
+      <a href="#skills"         class="nav-item"><span class="nav-dot"></span>Skills Validated</a>
+      <a href="#submission"     class="nav-item"><span class="nav-dot"></span>Submission Format</a>
+      <a href="#evaluation"     class="nav-item"><span class="nav-dot"></span>Evaluation Criteria</a>
+    </div>
+
+    <!-- Meta Card -->
+    <div class="meta-card">
+      <div class="sidebar-label">Problem Metadata</div>
+
+      <div class="meta-row">
+        <span class="meta-key">Difficulty</span>
+        <span class="diff-stars">★★★★☆</span>
+      </div>
+
+      <div class="meta-row">
+        <span class="meta-key">Effort</span>
+        <span class="meta-val">14 – 20 hrs</span>
+      </div>
+
+      <div class="meta-row">
+        <span class="meta-key">Sessions</span>
+        <span class="meta-val">2 – 3</span>
+      </div>
+
+      <div class="meta-row">
+        <span class="meta-key">Track</span>
+        <span class="tag tag-blue">Data Engineering</span>
+      </div>
+
+      <div class="meta-row">
+        <span class="meta-key">Programme</span>
+        <span class="meta-val">FDE</span>
+      </div>
+
+      <div class="meta-row">
+        <span class="meta-key">Evaluation</span>
+        <span class="tag tag-amber">DIFY Workflow</span>
+      </div>
+    </div>
+
+    <!-- Stack Tags -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Tech Stack</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding:4px 0;">
+        <span class="tag tag-blue">PostgreSQL</span>
+        <span class="tag tag-blue">MySQL</span>
+        <span class="tag tag-green">Snowflake</span>
+        <span class="tag tag-green">BigQuery</span>
+        <span class="tag tag-amber">LangChain</span>
+        <span class="tag tag-purple">LangGraph</span>
+        <span class="tag tag-purple">LangFuse</span>
+        <span class="tag tag-red">Great Expectations</span>
+        <span class="tag tag-green">dbt</span>
+        <span class="tag tag-amber">SQLAlchemy</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ════════════ MAIN ════════════ -->
+  <main class="main">
+
+    <!-- Problem Header -->
+    <div class="problem-header" id="overview">
+      <div class="problem-id">FDE-CAPSTONE-DE-01 &nbsp;/&nbsp; DATA ENGINEERING </div>
+      <h1 class="problem-title">AI-Assisted Legacy Data Migration<br/>Platform</h1>
+      <p class="problem-subtitle">
+        Build an AI-infused migration platform where LangChain agents understand schema semantics and generate
+        auditable transformation rules, while LangGraph orchestrates the full pipeline with human-in-the-loop
+        confidence gating at every high-risk decision.
+      </p>
+      <div class="header-tags">
+        <span class="tag tag-amber">★★★★☆ Advanced</span>
+        <span class="tag tag-green">Data Migration</span>
+        <span class="tag tag-blue">LangChain Agents</span>
+        <span class="tag tag-purple">LangGraph</span>
+        <span class="tag tag-red">Human-in-the-Loop</span>
+      </div>
+    </div>
+
+    <!-- SECTION 1: Problem Statement -->
+    <div class="section" id="problem">
+      <div class="section-header">
+        <span class="section-num">01</span>
+        <span class="section-title">Problem Statement</span>
+        <div class="section-line"></div>
+      </div>
+
+      <p class="prose" style="margin-bottom:14px;">
+        Legacy database migrations are notoriously expensive, slow, and error-prone. The typical failure
+        pattern is not technical — it is <strong>semantic</strong>. Engineers can move bytes reliably.
+        What they cannot do automatically is understand what those bytes <em>mean</em> across two different
+        schema designs.
+      </p>
+
+      <p class="prose" style="margin-bottom:14px;">
+        Schema mapping is manual — a large database can take weeks to document correctly. Business rules
+        are buried in application code, not in the schema itself. Column semantics are undocumented:
+        a field like <code style="font-family:var(--mono);font-size:11px;color:var(--accent3)">status INT</code>
+        could mean anything. Data type mismatches are discovered only after the move, during validation.
+        Transformation logic is inconsistently applied, and migration documentation is written after the fact, if at all.
+      </p>
+
+      <div class="callout callout-warn">
+        <div class="callout-title">📋 Project Scenario</div>
+        <p>Your team has been given access to a legacy relational database (MySQL or PostgreSQL) with minimal
+        inline documentation. The database has accumulated years of organic growth: inconsistently named columns,
+        undocumented status codes, implicit business rules, and zero column-level comments. A previous manual
+        migration attempt applied a status code mapping inconsistently, <strong>silently corrupting records</strong>.
+        The business now requires that every transformation rule be documented, reviewed, and traceable before
+        any data moves. Regulatory constraints — data-at-rest encryption, access controls, audit obligations —
+        apply depending on data domain and must be acknowledged in your <strong>DECISIONS.md</strong>.</p>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-title">🎯 Your Mission</div>
+        <p>Build an <strong>AI migration platform</strong> where LangChain agents assist with schema understanding,
+        transformation rule generation, and documentation — while LangGraph orchestrates the end-to-end workflow
+        with <strong>human-in-the-loop checkpoints</strong> at every high-risk decision. The platform must be
+        fully auditable, reproducible, and safe.</p>
+      </div>
+    </div>
+
+    <!-- SECTION 2: Prerequisites -->
+    <div class="section" id="prerequisites">
+      <div class="section-header">
+        <span class="section-num">02</span>
+        <span class="section-title">Prerequisites</span>
+        <div class="section-line"></div>
+      </div>
+
+      <p class="prose" style="margin-bottom:16px;">
+        You are expected to have working knowledge of the following before beginning the capstone.
+        These were covered during the FDE programme.
+      </p>
+
+      <div class="req-list">
+
+        <div class="req-item">
+          <div class="req-icon">🤖</div>
+          <div class="req-content">
+            <div class="req-title">Agentic Coding with Claude Code</div>
+            <div class="req-desc">Familiarity with using Claude Code as an agentic coding assistant — including context management, multi-step task execution, and tool invocation. You should be able to design and prompt agents that can reason over database schemas and generate structured outputs.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">🔗</div>
+          <div class="req-content">
+            <div class="req-title">LangGraph — AI Orchestration</div>
+            <div class="req-desc">Understanding of LangGraph's stateful graph model for orchestrating multi-agent and multi-step AI workflows. Ability to define nodes, edges, conditional routing, and state management in a LangGraph pipeline — including pause-and-resume for human review gates.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">🧠</div>
+          <div class="req-content">
+            <div class="req-title">LangChain — LLM Agents &amp; Chains</div>
+            <div class="req-desc">Experience building LangChain agents and chains that consume structured context (schema metadata, sample values) and produce structured JSON outputs with confidence scores. Understanding of prompt templates and output parsers.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">📊</div>
+          <div class="req-content">
+            <div class="req-title">LangFuse — LLM Observability</div>
+            <div class="req-desc">Experience instrumenting LLM calls using LangFuse for tracing, logging, and evaluation. You should be able to integrate LangFuse's SDK to track agent traces, spans, confidence scores, and human override decisions throughout a migration run.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">🗄️</div>
+          <div class="req-content">
+            <div class="req-title">SQL &amp; Database Fundamentals</div>
+            <div class="req-desc">Proficiency with relational database concepts — schemas, foreign keys, indexes, data types, null handling. Ability to write schema introspection queries using SQLAlchemy or raw SQL against PostgreSQL and MySQL.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">✅</div>
+          <div class="req-content">
+            <div class="req-title">Data Quality Engineering</div>
+            <div class="req-desc">Working knowledge of Great Expectations for data validation — defining expectations, running suites, and interpreting validation results. Understanding of how to baseline source data before a migration and verify target data after load.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 3: Tools & Software -->
+    <div class="section" id="tools">
+      <div class="section-header">
+        <span class="section-num">03</span>
+        <span class="section-title">Required Tools &amp; Software</span>
+        <div class="section-line"></div>
+      </div>
+
+      <p class="prose" style="margin-bottom:16px;">Install and verify all of the following before starting development.</p>
+
+      <div class="cards">
+
+        <div class="card">
+          <div class="card-icon">🐍</div>
+          <div class="card-title">Python 3.10+</div>
+          <div class="card-desc">Required for all pipeline components. Verify: <code style="font-family:monospace;font-size:10px;color:var(--accent3)">python --version</code></div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🗄️</div>
+          <div class="card-title">PostgreSQL or MySQL</div>
+          <div class="card-desc">Source legacy database. Run locally via Docker or use a hosted instance. Must contain a multi-table schema with realistic complexity.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">❄️</div>
+          <div class="card-title">Snowflake or BigQuery</div>
+          <div class="card-desc">Migration target — modern cloud warehouse. Free trial accounts are available for both platforms.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🔁</div>
+          <div class="card-title">LangGraph + LangChain</div>
+          <div class="card-desc">Install via pip: <code style="font-family:monospace;font-size:10px;color:var(--accent3)">pip install langgraph langchain</code>. Core orchestration and agent framework.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🔭</div>
+          <div class="card-title">LangFuse SDK</div>
+          <div class="card-desc">Install via pip: <code style="font-family:monospace;font-size:10px;color:var(--accent3)">pip install langfuse</code>. Required for tracing every LLM call in the pipeline.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">✅</div>
+          <div class="card-title">Great Expectations</div>
+          <div class="card-desc">Install via pip: <code style="font-family:monospace;font-size:10px;color:var(--accent3)">pip install great-expectations</code>. Data quality validation pre and post migration.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🔧</div>
+          <div class="card-title">dbt Core</div>
+          <div class="card-desc">Install via pip: <code style="font-family:monospace;font-size:10px;color:var(--accent3)">pip install dbt-core</code>. Post-migration validation models and lineage documentation.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🐳</div>
+          <div class="card-title">Docker Desktop</div>
+          <div class="card-desc">Recommended for running local database containers. Simplifies source DB setup without requiring a local installation.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">💻</div>
+          <div class="card-title">Claude Code CLI</div>
+          <div class="card-desc">Must be authenticated with a valid LLM API key before use. Primary agentic coding interface for the capstone.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🔄</div>
+          <div class="card-title">Airflow (Optional)</div>
+          <div class="card-desc">Available as a scheduling extension for teams that want full pipeline infrastructure beyond the Python retry baseline.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-icon">🧰</div>
+          <div class="card-title">VS Code (Recommended)</div>
+          <div class="card-desc">Recommended IDE. Install Pylance, SQLTools, and the dbt Power User extensions for the best development experience.</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 4: API Keys & External Access -->
+    <div class="section" id="api-keys">
+      <div class="section-header">
+        <span class="section-num">04</span>
+        <span class="section-title">API Keys &amp; External Access Requirements</span>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="callout callout-error">
+        <div class="callout-title">🔐 Security Notice</div>
+        <p>Never commit API keys, tokens, or database credentials to source control repositories. Use a
+        <code style="font-family:monospace;font-size:11px;color:var(--accent3)">.env</code> file and add it to
+        <code style="font-family:monospace;font-size:11px;color:var(--accent3)">.gitignore</code>. Your evaluator
+        will provide their own credentials at runtime; document all required environment variables in your
+        <code style="font-family:monospace;font-size:11px;color:var(--accent3)">README.md</code>.</p>
+      </div>
+
+      <div class="req-list">
+
+        <div class="req-item">
+          <div class="req-icon">🧠</div>
+          <div class="req-content">
+            <div class="req-title">LLM API Key</div>
+            <div class="req-desc">Required for all LangChain and LangGraph LLM calls. Participants may use any supported LLM provider (Anthropic, OpenAI, etc.). Check your usage limits on the provider's console dashboard before starting the pipeline run.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">❄️</div>
+          <div class="req-content">
+            <div class="req-title">Snowflake Account Credentials</div>
+            <div class="req-desc">Required if using Snowflake as the migration target. Create a free trial account at Snowflake's website. You will need account URL, username, password, warehouse name, database, and schema. Configure via the Snowflake Python connector or SQLAlchemy dialect.</div>
+            <a href="https://signup.snowflake.com" class="req-link" target="_blank">→ signup.snowflake.com</a>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">☁️</div>
+          <div class="req-content">
+            <div class="req-title">BigQuery Service Account (OAuth)</div>
+            <div class="req-desc">Required if using BigQuery as the migration target. Create a project in Google Cloud Console, enable the BigQuery API, and generate a Service Account key JSON. Download the credentials file and set
+            <code style="font-family:monospace;font-size:11px;color:var(--accent3)">GOOGLE_APPLICATION_CREDENTIALS</code> in your environment.</div>
+            <a href="https://console.cloud.google.com/apis/library/bigquery.googleapis.com" class="req-link" target="_blank">→ Google Cloud Console – BigQuery API</a>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">🔭</div>
+          <div class="req-content">
+            <div class="req-title">LangFuse Project Keys</div>
+            <div class="req-desc">Required for LLM observability and tracing. Sign up for LangFuse Cloud (free tier available) or self-host. From your LangFuse project settings, obtain
+            <code style="font-family:monospace;font-size:11px;color:var(--accent3)">LANGFUSE_PUBLIC_KEY</code>,
+            <code style="font-family:monospace;font-size:11px;color:var(--accent3)">LANGFUSE_SECRET_KEY</code>, and
+            <code style="font-family:monospace;font-size:11px;color:var(--accent3)">LANGFUSE_HOST</code>.
+            These must be set in your <code style="font-family:monospace;font-size:11px;color:var(--accent3)">.env</code> file.</div>
+            <a href="https://cloud.langfuse.com" class="req-link" target="_blank">→ cloud.langfuse.com</a>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="margin-top:20px;">
+        <p class="prose" style="margin-bottom:10px;font-size:12px;">Your <code style="font-family:monospace;color:var(--accent3)">.env.example</code> file should expose these variable names (with no values):</p>
+        <div class="code-block"><span class="comment"># .env.example — copy to .env and fill in your credentials</span>
+
+<span class="key">LLM_API_KEY</span>=<span class="str">your_llm_api_key_here</span>
+
+<span class="comment"># Source DB (choose one)</span>
+<span class="key">SOURCE_DB_URL</span>=<span class="str">postgresql://user:pass@localhost:5432/legacy_db</span>
+
+<span class="comment"># Snowflake target (if using Snowflake)</span>
+<span class="key">SNOWFLAKE_ACCOUNT</span>=<span class="str">your_account_identifier</span>
+<span class="key">SNOWFLAKE_USER</span>=<span class="str">your_username</span>
+<span class="key">SNOWFLAKE_PASSWORD</span>=<span class="str">your_password</span>
+<span class="key">SNOWFLAKE_WAREHOUSE</span>=<span class="str">COMPUTE_WH</span>
+<span class="key">SNOWFLAKE_DATABASE</span>=<span class="str">MIGRATION_TARGET</span>
+
+<span class="comment"># BigQuery target (if using BigQuery)</span>
+<span class="key">GOOGLE_APPLICATION_CREDENTIALS</span>=<span class="str">./credentials.json</span>
+<span class="key">BIGQUERY_PROJECT_ID</span>=<span class="str">your_gcp_project_id</span>
+
+<span class="comment"># LangFuse Observability</span>
+<span class="key">LANGFUSE_PUBLIC_KEY</span>=<span class="str">pk-lf-your-public-key</span>
+<span class="key">LANGFUSE_SECRET_KEY</span>=<span class="str">sk-lf-your-secret-key</span>
+<span class="key">LANGFUSE_HOST</span>=<span class="str">https://cloud.langfuse.com</span>
+
+<span class="comment"># Confidence threshold</span>
+<span class="key">CONFIDENCE_THRESHOLD</span>=<span class="str">0.80</span></div>
+      </div>
+    </div>
+
+    <!-- SECTION 5: Architecture Guide -->
+    <div class="section" id="architecture">
+      <div class="section-header">
+        <span class="section-num">05</span>
+        <span class="section-title">Recommended Architecture</span>
+        <div class="section-line"></div>
+      </div>
+
+      <p class="prose" style="margin-bottom:18px;">
+        The following describes the recommended high-level architecture. You may adapt it, but
+        <strong>all mandatory components must be present</strong> and demonstrably integrated.
+      </p>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">1</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-title">Source Layer — Legacy OLTP Database</div>
+            <div class="step-desc">A MySQL or PostgreSQL database representing the legacy system. Must contain at minimum 5 tables with varied column naming conventions, at least one undocumented status-code column, nullable FK relationships, and realistic data volume for profiling (10,000+ rows per primary table).</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">2</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-title">Schema Profiling Layer — Python + SQLAlchemy</div>
+            <div class="step-desc">A profiling module that introspects the source database via SQLAlchemy reflection — extracting table names, column names, data types, null rates, cardinality, value distributions, and FK graphs. Profiling output is serialized as a structured JSON document that feeds all downstream AI agents.</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">3</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-title">AI Orchestration Layer — LangGraph + LangChain</div>
+            <div class="step-desc">The core migration graph built with LangGraph. Nodes represent pipeline stages: schema profiling → AI mapping → human review gate → rule generation → ETL execution → validation → documentation. LangChain agents power the inference and generation nodes. The graph handles conditional routing, retry-on-failure, and audit logging at every step.</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">4</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-title">Human Review Interface</div>
+            <div class="step-desc">When the LangGraph workflow pauses at the human review gate, a review interface (CLI, simple web UI, or structured JSON queue) presents flagged low-confidence mappings for a human operator. Approve, reject, or override decisions are captured and written to the audit log before the pipeline resumes.</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">5</div>
+            <div class="step-line"></div>
+          </div>
+          <div class="step-content">
+            <div class="step-title">Validation Layer — Great Expectations + dbt</div>
+            <div class="step-desc">Great Expectations suites run at three checkpoints: source baseline (pre-migration), post-extraction, and post-load (target). dbt models execute post-migration tests covering row counts, null rates, FK integrity, and business rule checks. A reconciliation report compares source vs target for every migrated table.</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-left">
+            <div class="step-num">6</div>
+          </div>
+          <div class="step-content">
+            <div class="step-title">Observability — LangFuse</div>
+            <div class="step-desc">Every LLM call, agent decision, confidence score, and human override in the workflow is traced to LangFuse. Traces include prompt input, model output, latency, and any human annotation. The LangFuse dashboard must show a per-agent trace view covering the full migration run and be submitted as part of your deliverables.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 6: LangGraph Workflow Nodes -->
+    <div class="section" id="workflow">
+      <div class="section-header">
+        <span class="section-num">06</span>
+        <span class="section-title">LangGraph Migration Workflow</span>
+        <div class="section-line"></div>
+      </div>
+
+      <p class="prose" style="margin-bottom:16px;">
+        The migration orchestrator must implement the following node sequence. Each node is a discrete
+        LangGraph state with defined inputs, outputs, and failure handling. Nodes must execute in order
+        unless the conditional routing logic routes to the human review queue.
+      </p>
+
+      <div class="req-list">
+
+        <div class="req-item">
+          <div class="req-icon">🔍</div>
+          <div class="req-content">
+            <div class="req-title"><code style="font-family:monospace;font-size:11px;color:var(--accent3)">schema_profiler</code></div>
+            <div class="req-desc">Introspects source DB — outputs table/column stats, sample values, null rates, cardinality, and FK graph. This snapshot is the ground truth for all downstream AI decisions and the baseline for Great Expectations validation suites.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">🧠</div>
+          <div class="req-content">
+            <div class="req-title"><code style="font-family:monospace;font-size:11px;color:var(--accent3)">ai_mapper</code></div>
+            <div class="req-desc">LangChain agent receives the schema profile and generates target schema mappings with a confidence score (0.0–1.0) and reasoning trace per column. Every mapping is stored alongside the prompt ID that produced it, for full traceability.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">🚦</div>
+          <div class="req-content">
+            <div class="req-title"><code style="font-family:monospace;font-size:11px;color:var(--accent3)">human_review_gate</code></div>
+            <div class="req-desc">Conditional node — routes any mapping with confidence &lt; 0.80 to a human review queue. Pipeline pauses until a human approves, rejects, or overrides each flagged mapping. All decisions are logged and versioned before the pipeline resumes. No mapping bypasses this gate.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">📋</div>
+          <div class="req-content">
+            <div class="req-title"><code style="font-family:monospace;font-size:11px;color:var(--accent3)">rule_generator</code></div>
+            <div class="req-desc">Generates transformation rules in the standard JSON schema from approved mappings using a LangChain agent. Every rule must be traceable to the LLM prompt that generated it and the human approval that cleared it for execution.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">⚙️</div>
+          <div class="req-content">
+            <div class="req-title"><code style="font-family:monospace;font-size:11px;color:var(--accent3)">migration_executor</code></div>
+            <div class="req-desc">Executes extraction, transformation, and load to the target cloud warehouse using the approved rule set. Includes Python-based retry with exponential backoff on transient failures. Airflow DAG integration is available as an optional scheduling extension.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">✅</div>
+          <div class="req-content">
+            <div class="req-title"><code style="font-family:monospace;font-size:11px;color:var(--accent3)">validator</code></div>
+            <div class="req-desc">Runs Great Expectations suites post-extraction and post-load. Generates a reconciliation report comparing row counts, null rates, and value distributions between source and target for every migrated table. Failures block pipeline completion.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">📖</div>
+          <div class="req-content">
+            <div class="req-title"><code style="font-family:monospace;font-size:11px;color:var(--accent3)">doc_generator</code></div>
+            <div class="req-desc">LangChain generates a complete target data dictionary from approved mappings and transformation rules — including column definitions, data lineage, transformation logic applied, and any human overrides recorded. This becomes the canonical documentation for the migrated schema.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 7: Transformation Rule Schema -->
+    <div class="section" id="rule-schema">
+      <div class="section-header">
+        <span class="section-num">07</span>
+        <span class="section-title">Transformation Rule Schema</span>
+        <div class="section-line"></div>
+      </div>
+
+      <p class="prose" style="margin-bottom:16px;">
+        All AI-generated transformation rules must conform to the following JSON structure.
+        This ensures consistency across teams and makes every rule fully auditable and replayable.
+      </p>
+
+      <div class="code-block">{
+  <span class="key">"source_column"</span>:  <span class="str">"pat_st_cd"</span>,
+  <span class="key">"target_column"</span>:  <span class="str">"patient_status"</span>,
+  <span class="key">"logic"</span>:          <span class="str">"CASE WHEN src = 'A' THEN 'Active' WHEN src = 'D' THEN 'Discharged' ELSE NULL END"</span>,
+  <span class="key">"null_handling"</span>:  <span class="str">"Map to NULL; flag in reconciliation report."</span>,
+  <span class="key">"edge_cases"</span>:     [<span class="str">"Unknown codes default to NULL"</span>, <span class="str">"Trim whitespace before mapping"</span>],
+  <span class="key">"confidence"</span>:     <span class="val">0.84</span>,
+  <span class="key">"prompt_id"</span>:      <span class="str">"prompt-uuid-abc123"</span>,
+  <span class="key">"human_reviewed"</span>: <span class="val">false</span>,
+  <span class="key">"override_note"</span>:  <span class="val">null</span>
+}</div>
+
+      <div class="callout callout-error" style="margin-top:16px;">
+        <div class="callout-title">🚫 Required — Blocks Pipeline</div>
+        <p>Any rule with <strong>confidence &lt; 0.80</strong> must have
+        <code style="font-family:monospace;font-size:11px;color:var(--accent4)">human_reviewed = true</code>
+        and a non-null
+        <code style="font-family:monospace;font-size:11px;color:var(--accent4)">override_note</code>
+        before it is passed to <code style="font-family:monospace;font-size:11px;color:var(--accent4)">migration_executor</code>.
+        Rules without this are treated as unapproved and <strong>block the pipeline</strong>.</p>
+      </div>
+    </div>
+
+    <!-- SECTION 8: Prompting Discipline -->
+    <div class="section" id="prompting">
+      <div class="section-header">
+        <span class="section-num">08</span>
+        <span class="section-title">Prompting Discipline</span>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-title">✅ Complete Prompt Example</div>
+        <p>A well-formed schema inference prompt includes schema context, sample values, and an explicit request for confidence and reasoning:</p>
+      </div>
+
+      <div class="code-block">You are a data migration assistant. Given the following column metadata,
+infer the semantic meaning, generate a transformation rule, and return a
+confidence score with reasoning.
+
+Column: <span class="val">pat_st_cd</span>
+Type:   <span class="val">VARCHAR(2)</span>
+Sample values: <span class="str">["A", "D", "I", "S", "D", "A", "A"]</span>
+Null rate: <span class="val">0.02</span>
+Table: <span class="val">patient_records</span>
+Related columns: <span class="val">pat_id (PK), admit_dt, discharge_dt</span>
+
+Return JSON with fields: inferred_meaning, transformation_rule,
+null_handling, edge_cases, confidence (0.0–1.0), reasoning.
+
+Do not guess on values with no clear pattern — flag those for human review.</div>
+
+      <p class="prose" style="margin:16px 0 10px;">Other strong prompt patterns:</p>
+      <div class="req-list">
+        <div class="req-item">
+          <div class="req-icon">💬</div>
+          <div class="req-content">
+            <div class="req-title">"What column semantics can you infer from <code style="font-family:monospace;font-size:11px;color:var(--accent3)">pat_st_cd</code> with sample values ['A','D','I','S']?"</div>
+            <div class="req-desc">Anchors the agent on concrete sample data rather than relying solely on naming conventions.</div>
+          </div>
+        </div>
+        <div class="req-item">
+          <div class="req-icon">💬</div>
+          <div class="req-content">
+            <div class="req-title">"Generate a transformation rule for this approved mapping — include edge cases, null handling, and a confidence score."</div>
+            <div class="req-desc">Forces all required rule schema fields to be populated in a single structured output call.</div>
+          </div>
+        </div>
+        <div class="req-item">
+          <div class="req-icon">💬</div>
+          <div class="req-content">
+            <div class="req-title">"Which mappings should be flagged for human review, and what is the minimum confidence threshold?"</div>
+            <div class="req-desc">Surfaces ambiguity explicitly rather than letting the model silently commit to a low-confidence guess.</div>
+          </div>
+        </div>
+        <div class="req-item">
+          <div class="req-icon">💬</div>
+          <div class="req-content">
+            <div class="req-title">"How should the LangGraph workflow handle a partial migration failure — retry from checkpoint or full rollback?"</div>
+            <div class="req-desc">Elicits failure-mode reasoning that feeds directly into your DECISIONS.md and rollback runbook.</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="prose" style="margin:20px 0 10px;">Weak prompts — red flags that will fail evaluation:</p>
+      <div class="callout callout-error">
+        <div class="callout-title">✗ Disqualifying Prompt Patterns</div>
+        <p>
+          <strong>"Migrate all the tables."</strong> — No schema understanding step, no confidence gating.<br/>
+          <strong>"Map source to target automatically."</strong> — No human review, no audit trail.<br/>
+          <strong>"Fix the data quality issues."</strong> — No profiling step, no issue classification.
+        </p>
+      </div>
+    </div>
+
+    <!-- SECTION 9: Inputs & Outputs -->
+    <div class="section" id="io">
+      <div class="section-header">
+        <span class="section-num">09</span>
+        <span class="section-title">Inputs &amp; Outputs</span>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="io-grid">
+        <div class="io-box">
+          <div class="io-header input">⬇ Accepted Inputs</div>
+          <div class="io-items">
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">Source DB connection string (PostgreSQL or MySQL)</div></div>
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">Target warehouse credentials (Snowflake or BigQuery)</div></div>
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">Confidence threshold setting (default 0.80)</div></div>
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">Human override decisions (approve / reject / override_note)</div></div>
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">Table selection filter (migrate all or subset)</div></div>
+          </div>
+        </div>
+        <div class="io-box">
+          <div class="io-header output">⬆ Generated Outputs</div>
+          <div class="io-items">
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">Schema profile JSON (null rates, cardinality, FK graph)</div></div>
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">AI-generated transformation rules (conforming to rule schema)</div></div>
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">Reconciliation report (source vs target row counts, distributions)</div></div>
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">Target data dictionary (column definitions, lineage, rules)</div></div>
+            <div class="io-item"><div class="io-bullet"></div><div class="io-label">Immutable migration audit log (all AI suggestions + human decisions)</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 10: Failure Modes & Anti-Patterns -->
+    <div class="section" id="antipatterns">
+      <div class="section-header">
+        <span class="section-num">10</span>
+        <span class="section-title">Failure Modes &amp; Anti-Patterns</span>
+        <div class="section-line"></div>
+      </div>
+
+      <p class="prose" style="margin-bottom:16px;">The following are <strong>disqualifying anti-patterns</strong>. Any submission exhibiting these will not pass evaluation.</p>
+
+      <div class="req-list">
+        <div class="req-item">
+          <div class="req-icon">✗</div>
+          <div class="req-content">
+            <div class="req-title" style="color:var(--accent4);">Accepting all AI-generated mappings without a confidence gate</div>
+            <div class="req-desc">Automation without oversight is the exact failure pattern the platform is built to prevent. Every mapping must pass through the confidence gate.</div>
+          </div>
+        </div>
+        <div class="req-item">
+          <div class="req-icon">✗</div>
+          <div class="req-content">
+            <div class="req-title" style="color:var(--accent4);">No audit trail for LLM decisions</div>
+            <div class="req-desc">Untraceable AI-driven data changes are unacceptable in any regulated environment. Every AI suggestion, confidence score, and human decision must be logged immutably.</div>
+          </div>
+        </div>
+        <div class="req-item">
+          <div class="req-icon">✗</div>
+          <div class="req-content">
+            <div class="req-title" style="color:var(--accent4);">Running migration without a pre-migration Great Expectations baseline</div>
+            <div class="req-desc">No baseline means no rollback reference point if the load fails. The source validation suite must run before any data is moved.</div>
+          </div>
+        </div>
+        <div class="req-item">
+          <div class="req-icon">✗</div>
+          <div class="req-content">
+            <div class="req-title" style="color:var(--accent4);">No reconciliation report</div>
+            <div class="req-desc">Migration declared complete without source-vs-target row count and distribution verification is not a completed migration — it is an unverified data move.</div>
+          </div>
+        </div>
+        <div class="req-item">
+          <div class="req-icon">✗</div>
+          <div class="req-content">
+            <div class="req-title" style="color:var(--accent4);">LangGraph workflow with no human-in-the-loop node</div>
+            <div class="req-desc">A fully automated migration of ambiguous mappings violates the core design requirement of the capstone and will result in automatic disqualification.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-warn" style="margin-top:16px;">
+        <div class="callout-title">⚠️ Where AI Falls Short</div>
+        <p><strong>True semantic ambiguity:</strong> Only a domain expert knows that a given code means 'Discharged' rather than 'Deceased'. &nbsp;·&nbsp; <strong>Business rule validation:</strong> LLM-generated rules must be verified by the application team before going live. &nbsp;·&nbsp; <strong>Performance tuning:</strong> Pipeline optimization requires profiling at real data volumes, not synthetic test sets.</p>
+      </div>
+    </div>
+
+    <!-- SECTION 11: Skills Validated -->
+    <div class="section" id="skills">
+      <div class="section-header">
+        <span class="section-num">11</span>
+        <span class="section-title">Skills Validated</span>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="skills-grid">
+        <div class="skill-pill">
+          <div class="skill-bar-wrap">
+            <div class="skill-name">AI-Assisted Data Engineering</div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:100%"></div></div>
+          </div>
+        </div>
+        <div class="skill-pill">
+          <div class="skill-bar-wrap">
+            <div class="skill-name">Agent Orchestration</div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:100%"></div></div>
+          </div>
+        </div>
+        <div class="skill-pill">
+          <div class="skill-bar-wrap">
+            <div class="skill-name">Human-in-the-Loop Design</div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:95%"></div></div>
+          </div>
+        </div>
+        <div class="skill-pill">
+          <div class="skill-bar-wrap">
+            <div class="skill-name">Data Quality Engineering</div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:90%"></div></div>
+          </div>
+        </div>
+        <div class="skill-pill">
+          <div class="skill-bar-wrap">
+            <div class="skill-name">Migration Discipline</div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:95%"></div></div>
+          </div>
+        </div>
+        <div class="skill-pill">
+          <div class="skill-bar-wrap">
+            <div class="skill-name">AI Observability (LangFuse)</div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:90%"></div></div>
+          </div>
+        </div>
+        <div class="skill-pill">
+          <div class="skill-bar-wrap">
+            <div class="skill-name">Prompt Engineering</div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:85%"></div></div>
+          </div>
+        </div>
+        <div class="skill-pill">
+          <div class="skill-bar-wrap">
+            <div class="skill-name">Audit &amp; Compliance Design</div>
+            <div class="skill-bar-bg"><div class="skill-bar-fill" style="width:80%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 12: Submission Format -->
+    <div class="section" id="submission">
+      <div class="section-header">
+        <span class="section-num">12</span>
+        <span class="section-title">Submission Format</span>
+        <div class="section-line"></div>
+      </div>
+
+      <div class="callout callout-tip">
+        <div class="callout-title">📬 Submission via DIFY Workflow</div>
+        <p>All submissions are evaluated automatically through the FDE programme's internal DIFY workflow platform. You must submit your project using the standardized format below. Submissions that do not conform to this format will not be evaluated.</p>
+      </div>
+
+      <div class="submission-box">
+        <div class="submission-header">
+          <span>📤</span> Required Submission Fields
+        </div>
+        <div class="submission-body">
+
+          <div class="sub-field">
+            <div class="sub-key">participant_id</div>
+            <div class="sub-val">Your unique FDE programme participant ID (provided at onboarding). Format: <code>FDE-YYYY-NNNN</code></div>
+          </div>
+
+          <div class="sub-field">
+            <div class="sub-key">project_zip_file</div>
+            <div class="sub-val">Upload a ZIP archive containing your complete project source code.</div>
+          </div>
+
+          <div class="callout callout-info" style="margin-top:16px;">
+            <div class="callout-title">📘 README Requirements</div>
+            <p>Your README.md must contain the following sections:</p>
+            <ul style="margin-top:8px;padding-left:20px;color:var(--text2);">
+              <li>Project Overview</li>
+              <li>Architecture Description</li>
+              <li>Setup Instructions</li>
+              <li>Environment Variables</li>
+              <li>How to Run the Migration Pipeline</li>
+              <li>How to Rollback a Failed Migration</li>
+              <li>How to Inspect AI Decisions (Audit Log + LangFuse)</li>
+              <li>Known Limitations</li>
+            </ul>
+          </div>
+
+          <div class="callout callout-tip">
+            <div class="callout-title">📦 Required ZIP Structure</div>
+            <div class="code-block">legacy-migration.zip
+
+├── README.md
+├── DECISIONS.md
+├── .env.example
+├── agents/
+│   ├── schema_profiler.py
+│   ├── ai_mapper.py
+│   ├── rule_generator.py
+│   └── doc_generator.py
+├── workflow/
+│   └── langgraph_orchestrator.py
+├── validation/
+│   ├── great_expectations/
+│   └── dbt_models/
+├── audit/
+│   └── migration_audit_log.json
+└── docs/
+    └── architecture.png</div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="callout callout-warn" style="margin-top:16px;">
+        <div class="callout-title">📤 Submission Portal</div>
+        <p>Participants will submit their capstone through the FDE Assessment Platform. The platform will collect the participant ID and project ZIP archive, trigger an automated DIFY evaluation workflow, and generate an evaluation report. Detailed submission instructions and portal access will be shared before the submission deadline.</p>
+      </div>
+    </div>
+
+    <!-- SECTION 13: Evaluation Criteria -->
+    <div class="section" id="evaluation">
+      <div class="section-header">
+        <span class="section-num">13</span>
+        <span class="section-title">Evaluation Criteria</span>
+        <div class="section-line"></div>
+      </div>
+
+      <p class="prose" style="margin-bottom:16px;">
+        Your submission will be evaluated by the FDE programme's DIFY-based automated assessment workflow across the following dimensions:
+      </p>
+
+      <div class="req-list">
+
+        <div class="req-item">
+          <div class="req-icon">⚙️</div>
+          <div class="req-content">
+            <div class="req-title">Functional Correctness <span class="tag tag-amber" style="margin-left:8px;">35%</span></div>
+            <div class="req-desc">Does the pipeline execute end-to-end successfully? Are all 7 LangGraph nodes implemented? Does the confidence gate correctly pause for low-confidence mappings and resume after human review? Do Great Expectations suites run at all three checkpoints?</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">🔗</div>
+          <div class="req-content">
+            <div class="req-title">Agent Design &amp; Orchestration <span class="tag tag-blue" style="margin-left:8px;">25%</span></div>
+            <div class="req-desc">Quality of the LangGraph agent graph — state design, node decomposition, conditional routing logic, and transformation rule schema conformance. LangFuse traces must be present and well-structured for every LLM call in the workflow.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">📋</div>
+          <div class="req-content">
+            <div class="req-title">Audit Trail &amp; Human-in-the-Loop <span class="tag tag-green" style="margin-left:8px;">20%</span></div>
+            <div class="req-desc">Completeness and immutability of the migration audit log. Quality of DECISIONS.md — confidence thresholds justified, human overrides documented with rationale, sensitive data acknowledged. Every AI suggestion traceable to a prompt ID.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">📦</div>
+          <div class="req-content">
+            <div class="req-title">Code Quality &amp; Documentation <span class="tag tag-purple" style="margin-left:8px;">15%</span></div>
+            <div class="req-desc">Project structure, code readability, completeness of README runbook (re-run, rollback, inspect AI decisions), quality of <code style="font-family:monospace;font-size:11px;color:var(--accent3)">.env.example</code>, and whether dbt models cover all required post-migration validation checks.</div>
+          </div>
+        </div>
+
+        <div class="req-item">
+          <div class="req-icon">✨</div>
+          <div class="req-content">
+            <div class="req-title">Innovation &amp; Bonus Features <span class="tag tag-red" style="margin-left:8px;">5%</span></div>
+            <div class="req-desc">Any creative extensions beyond the minimum requirements — e.g., Airflow DAG scheduling, a visual mapping review UI, multi-table dependency resolution, automated PII/sensitive column detection in the profiler, or incremental migration support.</div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="callout callout-info" style="margin-top:20px;">
+        <div class="callout-title">📌 Minimum Pass Requirements</div>
+        <p>To pass the capstone, your submission must: (1) execute at least one complete table migration end-to-end, (2) implement the human-in-the-loop confidence gate, (3) include LangFuse instrumentation and traces for every LLM call, (4) provide a DECISIONS.md with sensitive data acknowledgment, and (5) include a valid <code style="font-family:monospace;color:var(--accent3)">.env.example</code> documenting all required environment variables.</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="divider"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:11px;color:var(--text3);font-family:var(--mono);">
+        FDE-CAPSTONE-DE-01 &nbsp;·&nbsp; AI-Assisted Legacy Migration &nbsp;·&nbsp; Data Engineering
+      </div>
+      <div style="display:flex;gap:8px;">
+        <span class="tag tag-amber">LangChain</span>
+        <span class="tag tag-purple">LangGraph</span>
+        <span class="tag tag-blue">LangFuse</span>
+        <span class="tag tag-red">Great Expectations</span>
+        <span class="tag tag-green">dbt</span>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  function showProblemStatement() {
+    document.getElementById("disclaimer-screen").style.display = "none";
+    document.getElementById("problem-content").style.display = "grid";
+  }
+  // Smooth-scroll sidebar nav
+  document.querySelectorAll('.nav-item').forEach(link => {
+    link.addEventListener('click', e => {
+      const href = link.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        e.preventDefault();
+        const target = document.querySelector(href);
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+      }
+    });
+  });
+
+  // Highlight nav on scroll
+  const sections = document.querySelectorAll('[id]');
+  const navLinks = document.querySelectorAll('.nav-item');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 120) current = s.getAttribute('id');
+    });
+    navLinks.forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+    });
+  }, { passive: true });
+</script>
+
+</body>
+</html>

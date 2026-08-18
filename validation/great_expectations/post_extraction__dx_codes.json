@@ -1,0 +1,35 @@
+{
+  "suite_name": "post_extraction__dx_codes",
+  "expectations": [
+    {
+      "type": "expect_table_columns_to_match_set",
+      "column_set": [
+        "dx_id",
+        "encounter_id",
+        "diagnosis_code",
+        "dx_description",
+        "is_primary_diagnosis"
+      ]
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "dx_id"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "encounter_id"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "diagnosis_code"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "dx_description"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "is_primary_diagnosis"
+    }
+  ]
+}

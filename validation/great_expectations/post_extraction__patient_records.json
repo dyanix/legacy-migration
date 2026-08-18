@@ -1,0 +1,60 @@
+{
+  "suite_name": "post_extraction__patient_records",
+  "expectations": [
+    {
+      "type": "expect_table_columns_to_match_set",
+      "column_set": [
+        "patient_id",
+        "patient_status_code",
+        "first_name",
+        "last_name",
+        "date_of_birth",
+        "sex_code",
+        "admission_datetime",
+        "discharge_datetime",
+        "created_ts",
+        "updated_at"
+      ]
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "patient_id"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "patient_status_code"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "first_name"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "last_name"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "date_of_birth"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "sex_code"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "admission_datetime"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "discharge_datetime"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "created_ts"
+    },
+    {
+      "type": "expect_column_to_exist",
+      "column": "updated_at"
+    }
+  ]
+}

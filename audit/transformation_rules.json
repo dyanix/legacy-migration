@@ -1,0 +1,523 @@
+{
+  "generated_at": "2026-08-12T19:29:00.858294+00:00",
+  "rule_count": 32,
+  "pipeline_ready": true,
+  "blocking_violation_count": 0,
+  "rules": [
+    {
+      "source_column": "dept_id",
+      "target_column": "dept_id",
+      "logic": "CAST(dept_id AS INTEGER) -- direct pass-through, no transformation needed; preserve as primary key",
+      "null_handling": "Column is declared as primary key with 0.0 null rate; no NULLs expected. If a NULL/empty value is encountered, reject the row or flag for manual review since a PK cannot be null.",
+      "edge_cases": [
+        "Sample value shown as empty string '' despite type INTEGER and null_rate 0.0 -- likely a data extraction/display artifact rather than an actual empty value; needs verification against raw source.",
+        "Cardinality of 8 seems low for a primary key spanning what could be a larger dept_master table -- verify if this reflects the full table or a sample.",
+        "Ensure FK relationship consistency: prv_tbl.dept_id values must all exist in dept_master.dept_id."
+      ],
+      "confidence": 0.75,
+      "prompt_id": "prompt-ec0e1df3-cb91-4fab-b089-a49cdc293552",
+      "human_reviewed": true,
+      "override_note": "Pass-through PK confirmed. Empty-string sample is a profiler display artifact, not source data \u2014 dept_id is populated for all 8 rows.",
+      "source_table": "dept_master"
+    },
+    {
+      "source_column": "dept_nm",
+      "target_column": "department_name",
+      "logic": "TRIM(dept_nm) -- direct passthrough, no case/format change since values already appear as intended display names; optionally CAST to VARCHAR(100) to match target schema",
+      "null_handling": "No NULLs observed (null_rate = 0.0); if NULL occurs in future loads, map to NULL (do not default to empty string) and flag row for review since dept_master likely requires a non-null name",
+      "edge_cases": [
+        "All sample values end with literal ' Dept' suffix -- unclear if this should be stripped or preserved in target system",
+        "Values resemble faker-generated company names (e.g., 'Howard LLC') rather than typical real-world department names (e.g., 'Finance', 'HR'), suggesting this may be synthetic/test data",
+        "High uniqueness (cardinality 8 matching row count) suggests each row has a distinct name, consistent with a name/label column rather than a categorical code",
+        "Punctuation variety (commas, hyphens, 'and', 'LLC') may need normalization depending on downstream consumer expectations"
+      ],
+      "confidence": 0.82,
+      "prompt_id": "prompt-80fa6dc9-f515-4701-9a43-0b4d93741de8",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "dept_master"
+    },
+    {
+      "source_column": "dept_loc",
+      "target_column": "dept_location",
+      "logic": "TRIM(dept_loc) -- direct pass-through rename, no value transformation needed",
+      "null_handling": "No nulls observed (null_rate 0.0); if NULL encountered, preserve as NULL rather than substituting a default, since location is descriptive metadata not required for referential integrity",
+      "edge_cases": [
+        "All sample values appear to be synthetically generated place names (e.g., 'Lake Curtis', 'Traciebury'), consistent with faker-generated city names rather than real-world locations",
+        "Cardinality equals row count (8/8 unique), suggesting each department has a distinct location, but this should be verified against expected business rules (e.g., can two departments share a location?)",
+        "No standardization of format (city vs. city+state) is evident; downstream systems expecting structured address fields (city, state, country) would need this field parsed or supplemented"
+      ],
+      "confidence": 0.8,
+      "prompt_id": "prompt-d5b34be4-8f02-4992-a2c3-a9127d6d6ae1",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "dept_master"
+    },
+    {
+      "source_column": "active_flg",
+      "target_column": "is_active",
+      "logic": "CASE WHEN active_flg = 'Y' THEN TRUE WHEN active_flg = 'N' THEN FALSE ELSE NULL END",
+      "null_handling": "No nulls observed (null_rate 0.0); if NULL occurs, map to NULL and flag for review since no default 'inactive' assumption should be made without confirmation.",
+      "edge_cases": [
+        "Only value observed is 'Y' (cardinality=1), so 'N' or other values (e.g., lowercase, blank) are untested and may require additional mapping logic.",
+        "Sample size is very small (8 rows), so distribution may not reflect full production data."
+      ],
+      "confidence": 0.75,
+      "prompt_id": "prompt-f37ec6a3-9d32-488e-998d-633224001388",
+      "human_reviewed": true,
+      "override_note": "Y/N/else-NULL is correct. Only 'Y' present today; rule handles 'N' if it appears and refuses to guess on anything else.",
+      "source_table": "dept_master"
+    },
+    {
+      "source_column": "dx_id",
+      "target_column": "dx_id",
+      "logic": "CAST(dx_id AS INTEGER) -- direct passthrough, no transformation needed",
+      "null_handling": "No nulls expected/allowed; column is primary key and null rate is 0.0. If a null is encountered, reject/flag the row as data integrity violation.",
+      "edge_cases": [
+        "Sequential integer values suggest auto-increment behavior; gaps in sequence may occur due to deleted records",
+        "Cardinality (15080) should match row count for table if truly unique primary key"
+      ],
+      "confidence": 0.98,
+      "prompt_id": "prompt-a8e9d98e-f8a1-4d3e-bbbb-086599a421cc",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "dx_codes"
+    },
+    {
+      "source_column": "enc_id",
+      "target_column": "encounter_id",
+      "logic": "SELECT enc_id AS encounter_id FROM dx_codes -- direct passthrough, cast to INTEGER if not already; validate referential integrity against enc_log.enc_id",
+      "null_handling": "No NULLs present (null_rate 0.0); if NULLs were to appear, they would indicate an orphaned diagnosis record and should be flagged/rejected rather than defaulted, since this is a required FK relationship.",
+      "edge_cases": [
+        "Values in enc_id that do not exist in enc_log.enc_id (orphaned FK) should be flagged during migration",
+        "Cardinality (15080) is lower than typical dx_codes row count, implying multiple dx codes per encounter -- expected many-to-one relationship, not an anomaly",
+        "Ensure data type consistency (INTEGER) between source and target enc_log.enc_id"
+      ],
+      "confidence": 0.95,
+      "prompt_id": "prompt-f7b81421-a523-4565-9db8-e1e2e87727d6",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "dx_codes"
+    },
+    {
+      "source_column": "dx_cd",
+      "target_column": "diagnosis_code",
+      "logic": "UPPER(TRIM(dx_cd))",
+      "null_handling": "Preserve existing NULLs as NULL (missing/unrecorded diagnosis). Additionally, map the literal placeholder value 'TBD' to NULL since it represents an unassigned/pending diagnosis code rather than a valid ICD-10 code, and flag these rows for follow-up/completion.",
+      "edge_cases": [
+        "'TBD' is a non-ICD-10 placeholder value (~11% of rows) indicating the diagnosis code has not yet been determined - should not be treated as a valid code",
+        "Codes follow standard ICD-10-CM format (letter + 2 digits, optional decimal + up to 4 more chars) except for 'TBD'",
+        "Null rate of 10.16% may overlap conceptually with 'TBD' entries - need to confirm with source system whether NULL and 'TBD' have distinct business meanings or are used interchangeably",
+        "Case sensitivity - codes appear uppercase; downstream systems may expect this normalized"
+      ],
+      "confidence": 0.75,
+      "prompt_id": "prompt-fe900418-52e8-4635-adfb-d58743a48691",
+      "human_reviewed": true,
+      "override_note": "Preserving 'TBD' rather than nulling it. TBD is ~11% of rows and source already has 10.16% true NULLs; mapping TBD to NULL merges \"diagnosis pending\" with \"diagnosis absent\" and the distinction is unrecoverable after migration.",
+      "source_table": "dx_codes"
+    },
+    {
+      "source_column": "dx_desc",
+      "target_column": "dx_description",
+      "logic": "TRIM(dx_desc)",
+      "null_handling": "Preserve NULLs as NULL (high null rate ~60% suggests description is often not populated); do not default to empty string or placeholder text",
+      "edge_cases": [
+        "Sample values look like synthetic/mock data (e.g., 'Learn well anything.', 'Find carry.') rather than plausible medical diagnosis descriptions, suggesting this is test/fake data",
+        "High cardinality (5987) relative to likely diagnosis code set implies descriptions may not correspond 1:1 with dx_cd, or data is fabricated",
+        "60% null rate is unusually high for a description field tied to an actual diagnosis code - may indicate incomplete population or optional field",
+        "No FK relationship to a standard code table (e.g., ICD-9/10 descriptions) to validate against"
+      ],
+      "confidence": 0.4,
+      "prompt_id": "prompt-e536f024-9265-4a9f-b09a-7db6c568b5ed",
+      "human_reviewed": true,
+      "override_note": "Removed CAST to VARCHAR(255) \u2014 dx_desc is TEXT and the cast silently truncates anything longer.",
+      "source_table": "dx_codes"
+    },
+    {
+      "source_column": "primary_flg",
+      "target_column": "is_primary_diagnosis",
+      "logic": "CASE WHEN primary_flg = 'Y' THEN TRUE WHEN primary_flg = 'N' THEN FALSE ELSE NULL END",
+      "null_handling": "No nulls present in source data (null_rate 0.0); if a null were encountered, map to NULL (unknown) rather than defaulting to FALSE, to avoid misrepresenting diagnosis status.",
+      "edge_cases": [
+        "Only 'Y' and 'N' values observed; no unexpected codes present",
+        "If future data introduces other values (e.g., blank, '1'/'0', lowercase 'y'/'n'), transformation logic should be updated to handle them",
+        "Assumes only one primary diagnosis per encounter (enc_id) - not validated here, may need uniqueness check downstream"
+      ],
+      "confidence": 0.95,
+      "prompt_id": "prompt-d0c7070d-444b-4f3b-ae17-25a8b95d53a4",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "dx_codes"
+    },
+    {
+      "source_column": "enc_id",
+      "target_column": "encounter_id",
+      "logic": "CAST(enc_id AS INTEGER) AS encounter_id",
+      "null_handling": "Column is non-nullable (null rate 0.0); primary key should never be null. If a null is encountered, flag row for review/reject rather than defaulting.",
+      "edge_cases": [
+        "Ensure no duplicate values since it's a primary key with cardinality equal to row count",
+        "Value range/formatting should be validated against dx_codes.enc_id FK to ensure referential integrity",
+        "If source system reuses IDs after deletion, historical joins could break"
+      ],
+      "confidence": 0.97,
+      "prompt_id": "prompt-9518d07c-6c12-40ed-9414-4a0adfd8a7de",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "enc_log"
+    },
+    {
+      "source_column": "pat_id",
+      "target_column": "patient_id",
+      "logic": "SELECT CAST(pat_id AS INTEGER) AS patient_id FROM enc_log -- direct passthrough, maps 1:1 to patient_records.pat_id",
+      "null_handling": "No nulls observed (null_rate 0.0); if a null were encountered, it should be treated as invalid/orphaned encounter record and flagged for review rather than defaulted, since every encounter should belong to a patient.",
+      "edge_cases": [
+        "Values must exist in patient_records.pat_id; any pat_id not found there indicates referential integrity issue.",
+        "Non-primary-key status in enc_log means duplicate pat_id values are expected (one patient can have many encounters).",
+        "Cardinality (10541) is lower than typical row count of enc_log, consistent with FK to a smaller patient table."
+      ],
+      "confidence": 0.97,
+      "prompt_id": "prompt-934ae664-3345-405b-bf72-e24f58369ddd",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "enc_log"
+    },
+    {
+      "source_column": "prv_id",
+      "target_column": "provider_id",
+      "logic": "CAST(prv_id AS INTEGER) AS provider_id -- direct passthrough, no value transformation needed; ensure referential integrity against prv_tbl.prv_id",
+      "null_handling": "Preserve NULL as NULL; NULL likely indicates the encounter had no assigned/known provider at time of recording (e.g., self-service, unassigned, or data entry gap). Do not default to 0 or a sentinel value -- keep as NULL to avoid falsely implying a valid provider link. Flag rows with NULL prv_id for review if downstream reporting requires a provider on every encounter.",
+      "edge_cases": [
+        "10% null rate suggests a systematic reason (e.g., certain encounter types like self-check-in or automated billing may not require a provider) rather than random missingness -- worth investigating enc_typ_cd correlation",
+        "Cardinality of 40 distinct providers should be cross-checked against total row count in prv_tbl to ensure no orphaned FK values exist",
+        "Integer type with FK relationship implies simple surrogate key join; no transformation of value itself expected"
+      ],
+      "confidence": 0.9,
+      "prompt_id": "prompt-e0391554-06aa-4a6a-ac0d-01113414d83c",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "enc_log"
+    },
+    {
+      "source_column": "enc_typ_cd",
+      "target_column": "encounter_type_code",
+      "logic": "TRIM(UPPER(enc_typ_cd))",
+      "null_handling": "No nulls observed (null rate 0.0); if a null occurs in future data, map to 'UNKNOWN' and flag for review rather than dropping the record.",
+      "edge_cases": [
+        "'TC' could plausibly mean 'Telehealth Consult', 'Transitional Care', or 'Trauma Center' - meaning inferred from healthcare context but not explicitly confirmed by a lookup table.",
+        "Only 4 distinct codes observed; any new/unseen code values in future loads would fall to ELSE 'UNKNOWN' and require mapping updates.",
+        "Even distribution (~6200-6325 each) suggests these are the only valid enumerated values, but no reference/lookup table was provided to confirm exact full-text labels."
+      ],
+      "confidence": 0.75,
+      "prompt_id": "prompt-8f345925-4ae4-4e19-a764-d91d374cf749",
+      "human_reviewed": true,
+      "override_note": "Codes preserved rather than expanded to labels. 'TC' is genuinely ambiguous (Telehealth / Transitional Care / Trauma Center) with no lookup table to confirm, and ELSE 'UNKNOWN' would mask any new code silently. Column is named _code; expansion belongs in a lookup table.",
+      "source_table": "enc_log"
+    },
+    {
+      "source_column": "enc_dt",
+      "target_column": "encounter_datetime",
+      "logic": "CAST(enc_dt AS DATETIME) -- direct passthrough, no conversion needed since already in DATETIME format; standardize to ISO 8601 (YYYY-MM-DD HH:MM:SS) if target schema requires string representation",
+      "null_handling": "No nulls observed (null rate 0.0); if nulls appear in future data, leave as NULL rather than defaulting to a fabricated date, since encounter timestamp is a critical business fact.",
+      "edge_cases": [
+        "Timezone ambiguity: source values have no explicit timezone indicator; assume system/local timezone unless documented otherwise",
+        "High cardinality (24998) close to row count suggests near-unique timestamps, consistent with an event timestamp rather than a categorical or batch date",
+        "Column name 'enc_dt' suggests 'date' but values include full time component, so treat as full datetime, not date-only"
+      ],
+      "confidence": 0.9,
+      "prompt_id": "prompt-9172369a-9996-4756-9078-b33da4beaf40",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "enc_log"
+    },
+    {
+      "source_column": "bill_amt",
+      "target_column": "bill_amount",
+      "logic": "CAST(bill_amt AS DECIMAL(10,2)) -- direct pass-through, renaming column to bill_amount; no unit conversion needed",
+      "null_handling": "No NULLs present (null_rate 0.0); if NULLs appear in future data, treat as unknown/unbilled amount and preserve as NULL rather than defaulting to 0, to avoid conflating 'no charge' with 'missing data'",
+      "edge_cases": [
+        "Negative values could indicate credits/refunds if present, though none observed in sample",
+        "Currency assumed to be USD; no currency code column present to confirm",
+        "Extremely high or zero values may need validation against enc_typ_cd for plausibility"
+      ],
+      "confidence": 0.85,
+      "prompt_id": "prompt-518d3c04-2d2a-483b-b567-057841a139a1",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "enc_log"
+    },
+    {
+      "source_column": "pmt_st_cd",
+      "target_column": "payment_status_code",
+      "logic": "TRIM(UPPER(pmt_st_cd))",
+      "null_handling": "No nulls present (null rate 0.0); if a null were encountered, map to 'Unknown' to be consistent with the '?' sentinel value.",
+      "edge_cases": [
+        "'?' value (486 occurrences) does not clearly map to a known status and may represent a data entry error, placeholder, or a distinct status not yet identified",
+        "Single-letter codes are assumed but not confirmed against a data dictionary - 'P' could mean 'Paid' or 'Pending', 'R' could mean 'Rejected', 'Refunded', or 'Reversed'",
+        "No FK or lookup table exists to validate code meanings"
+      ],
+      "confidence": 0.55,
+      "prompt_id": "prompt-517f25ef-6c7d-4790-84af-cd27b991d435",
+      "human_reviewed": true,
+      "override_note": "Codes preserved. 'P' could be Paid or Pending \u2014 a material difference on billing data \u2014 and '?' (486 rows) would have been merged with the ELSE branch, losing the distinction between an explicit '?' and an unrecognised code.",
+      "source_table": "enc_log"
+    },
+    {
+      "source_column": "notes_txt",
+      "target_column": "notes",
+      "logic": "TRIM(notes_txt)",
+      "null_handling": "Preserve NULLs as NULL (high null rate ~70% suggests notes are optional/free-form); do not substitute empty string or default text.",
+      "edge_cases": [
+        "Sample values look like randomly generated filler text (e.g., Faker-style lorem ipsum), not real clinical notes -- may indicate synthetic/test data rather than genuine free text.",
+        "High cardinality (7431) with mostly unique short sentences suggests no categorical or coded meaning.",
+        "No apparent PII/PHI patterns detected in samples, but real production data could contain sensitive info requiring redaction review.",
+        "Empty string vs NULL distinction not observable from samples; assume both should map to NULL if empty."
+      ],
+      "confidence": 0.55,
+      "prompt_id": "prompt-736f6837-3695-442f-997d-ea979a078726",
+      "human_reviewed": true,
+      "override_note": "Original contained two expressions; comment-stripping kept the CAST and dropped the TRIM, so no trimming would have occurred.",
+      "source_table": "enc_log"
+    },
+    {
+      "source_column": "pat_id",
+      "target_column": "patient_id",
+      "logic": "CAST(pat_id AS INTEGER) AS patient_id -- direct 1:1 passthrough, no value transformation needed",
+      "null_handling": "Not applicable; null_rate is 0.0 and column is primary key, so NULLs should never occur. If a NULL is encountered, reject/flag the row as a data integrity violation rather than imputing a value.",
+      "edge_cases": [
+        "Values are sequential integers starting at 1, suggesting a surrogate key rather than a natural/business identifier; verify no reuse or gaps that could indicate soft-deleted records.",
+        "Ensure referential integrity is preserved when renaming, since enc_log.pat_id depends on this column as a foreign key.",
+        "Cardinality (12000) should equal row count for a true primary key; confirm no duplicates exist before migration."
+      ],
+      "confidence": 0.97,
+      "prompt_id": "prompt-4324004f-1b26-47d3-88ea-9bff5931746e",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "pat_st_cd",
+      "target_column": "patient_status_code",
+      "logic": "TRIM(UPPER(pat_st_cd)) -- normalize whitespace/case; e.g. ' D' -> 'D'; then map: A='Active', D='Discharged', I='Inactive', S='Suspended', X='Excluded/Unknown' (pending confirmation of exact code meanings)",
+      "null_handling": "No nulls present (null rate 0.0); if future nulls occur, map to 'Unknown' or leave NULL pending business rule confirmation.",
+      "edge_cases": [
+        "Leading whitespace in ' D' (232 occurrences) appears to be a data entry/formatting inconsistency that should be trimmed and treated as 'D'.",
+        "Code 'X' (130 occurrences) has no clear standard meaning (e.g., could be Excluded, Expired, Unknown) and needs human/business confirmation.",
+        "Single-letter codes A/D/I/S are plausible common status abbreviations but exact meaning depends on source system documentation, not confirmed here."
+      ],
+      "confidence": 0.55,
+      "prompt_id": "prompt-8068a6d5-188b-47b8-9ee4-b6a63e3750fe",
+      "human_reviewed": true,
+      "override_note": "Codes preserved raw, not expanded to labels. 'X' (130 rows) has no confirmed meaning and A/D/I/S are unverified, so expanding would bake in a guess. TRIM/UPPER normalises the ' D' whitespace variant only.",
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "fst_nm",
+      "target_column": "first_name",
+      "logic": "TRIM(fst_nm) -- copy value directly, trimming leading/trailing whitespace; optionally apply proper-case normalization if source casing is inconsistent",
+      "null_handling": "No NULLs observed (null rate 0.0); if NULL/empty occurs in future data, map to NULL in target (do not default to empty string) and flag record for data quality review.",
+      "edge_cases": [
+        "Hyphenated or multi-part first names (e.g., 'Mary-Jane') should be preserved as-is",
+        "Names with special characters or diacritics (e.g., accented letters) should be preserved, not stripped",
+        "Possible leading/trailing whitespace requiring trimming",
+        "Single-letter or initial-only entries could indicate truncated data",
+        "Titles or suffixes accidentally included in the field (rare) would need manual review"
+      ],
+      "confidence": 0.97,
+      "prompt_id": "prompt-a24d1546-e1dd-4d28-b1b7-84f16feea9a1",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "lst_nm",
+      "target_column": "last_name",
+      "logic": "TRIM(lst_nm) -- direct copy, standardize whitespace and optionally proper-case: INITCAP(TRIM(lst_nm))",
+      "null_handling": "No nulls observed (null_rate 0.0); if NULL/empty appears in future loads, map to NULL and flag record for review rather than defaulting to empty string.",
+      "edge_cases": [
+        "[\"Multi-part surnames (e.g., 'Van Der Berg') should be preserved as-is, not split\", \"Hyphenated or apostrophe-containing names (e.g., 'O'Brien-Smith') must retain punctuation\", \"Possible leading/trailing whitespace or inconsistent casing needing normalization\", \"Names with suffixes accidentally included (e.g., 'Miller Jr') would need separate handling\"]\n<parameter name=\"confidence\">0.97"
+      ],
+      "confidence": 0.0,
+      "prompt_id": "prompt-a5b91c29-ec04-495e-ac4e-c4cef7f91cd1",
+      "human_reviewed": true,
+      "override_note": "Confidence displayed as 0.00 is a structured-output parse bug \u2014 model's actual confidence was 0.97, visible leaked into edge_cases. Approving on merit. INITCAP in the comment is not applied and must not be: proper-casing destroys O'BRIEN and van der Berg.",
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "dob",
+      "target_column": "date_of_birth",
+      "logic": "CAST(dob AS DATE) -- values already in ISO 8601 (YYYY-MM-DD) format, direct mapping to target DATE column",
+      "null_handling": "No nulls present (null_rate 0.0); if a null occurs in future loads, preserve as NULL since DOB may legitimately be unknown/unrecorded rather than imputed.",
+      "edge_cases": [
+        "Very old dates (e.g., 1931) should be validated against reasonable age bounds to catch data entry errors",
+        "Future or implausible dates (e.g., dob after admit_dt) should be flagged during validation",
+        "Ensure date format consistency (no two-digit years or ambiguous MM/DD vs DD/MM formats) across full dataset, not just sample"
+      ],
+      "confidence": 0.97,
+      "prompt_id": "prompt-b02600c0-c9fb-45c0-81a4-2c142468c23f",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "sex_cd",
+      "target_column": "sex_code",
+      "logic": "CASE sex_cd WHEN 'M' THEN 'MALE' WHEN 'F' THEN 'FEMALE' WHEN 'U' THEN 'UNKNOWN' ELSE NULL END",
+      "null_handling": "Map NULL to 'UNKNOWN' or preserve as NULL depending on target schema requirements; given a 1.84% null rate, treat missing values as 'UNKNOWN' to align with existing 'U' code semantics unless downstream system requires strict NULL preservation for unreported data.",
+      "edge_cases": [
+        "Values outside {M, F, U} not observed in sample but could exist in production (e.g., lowercase 'm'/'f', 'X', 'O', or blank string)",
+        "NULL vs 'U' may carry different semantic meaning (explicitly unknown vs not recorded) and may need separate handling",
+        "Case sensitivity of source values not fully verified across full dataset"
+      ],
+      "confidence": 0.9,
+      "prompt_id": "prompt-4dd93300-a512-4c8c-9276-72f4bb60c38e",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "admit_dt",
+      "target_column": "admission_datetime",
+      "logic": "CAST(admit_dt AS DATETIME) -- direct copy, ensure ISO 8601 format 'YYYY-MM-DD HH:MI:SS'",
+      "null_handling": "No nulls observed (null_rate=0.0); if null occurs in future, leave as NULL since admission date is a required event field",
+      "edge_cases": [
+        "Future-dated values present (e.g., 2025-12-22) which may indicate test/placeholder data or scheduled admissions - flag for review",
+        "Ensure admit_dt <= discharge_dt for logical consistency; violations should be flagged",
+        "Timezone not specified in source; assume system local time unless otherwise documented"
+      ],
+      "confidence": 0.9,
+      "prompt_id": "prompt-3a89d7f5-cc0e-44d0-ae4a-7f9535684b78",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "discharge_dt",
+      "target_column": "discharge_datetime",
+      "logic": "CAST(discharge_dt AS DATETIME) -- direct pass-through, ensure ISO 8601 format (YYYY-MM-DD HH:MM:SS); no timezone conversion applied since source has no explicit TZ info",
+      "null_handling": "Preserve NULLs as-is; NULL likely indicates patient has not yet been discharged (still admitted) rather than missing data. Do not default to a placeholder date.",
+      "edge_cases": [
+        "NULL values (14.88% of records) likely represent currently admitted patients rather than data errors",
+        "Should validate discharge_dt >= admit_dt; any records where discharge precedes admit indicate data quality issues",
+        "No timezone information present in source; assume consistent system timezone unless otherwise documented",
+        "Future-dated values (e.g., 2025-01-12) suggest data includes records up to/near current date -- verify against system's 'as of' date"
+      ],
+      "confidence": 0.9,
+      "prompt_id": "prompt-525afece-25d5-4bd2-8b43-b03c9f12eb85",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "created_ts",
+      "target_column": "created_ts",
+      "logic": "CAST(created_ts AS DATETIME)",
+      "null_handling": "No nulls observed (null_rate 0.0); if a null or malformed string appears, set target to NULL and flag row for review rather than fabricating a timestamp.",
+      "edge_cases": [
+        "Source strings are missing the leading 'd' in 'datetime' - likely a truncation artifact from string slicing (str(dt)[1:]) or CSV export issue; need to confirm this is consistent across the full dataset.",
+        "String appears truncated - missing closing parenthesis, suggesting the raw repr may have been cut off (possibly losing microseconds field).",
+        "All sampled values share the same date (2026-08-01) and hour, differing only in seconds - very low cardinality (5) suggests this may be batch-load timestamps rather than true per-record creation times.",
+        "Need to verify no timezone component was dropped during string conversion."
+      ],
+      "confidence": 0.6,
+      "prompt_id": "prompt-1b9d745a-8479-4187-a754-ff0c7b8e9e26",
+      "human_reviewed": true,
+      "override_note": "created_ts is a genuine MySQL TIMESTAMP column, not a malformed string. The 'datetime.datetime(...)' pattern in the schema profile is a Python repr artifact from schema_profiler serialising datetime objects, not the stored value \u2014 confirmed by querying the source directly. No parsing needed.",
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "updated_ts",
+      "target_column": "updated_at",
+      "logic": "CAST(updated_ts AS TIMESTAMP) -- direct passthrough, rename column; no value transformation needed",
+      "null_handling": "Column is 100% NULL in observed data (null_rate=1.0, cardinality=0). Preserve NULLs as-is in target column; do not default to created_ts or current timestamp unless business rules confirm that this field should be backfilled. Flag for review whether NULLs should be populated with created_ts value on migration.",
+      "edge_cases": [
+        "Entire column is NULL in sample data, so no real values exist to confirm formatting/timezone",
+        "Cannot verify if timestamp is UTC or local time due to lack of sample data",
+        "May never be populated by source system (possibly a placeholder/unused column) - needs confirmation from source system owner",
+        "If system always defaults to created_ts on insert and never updates it, this column may be effectively dead"
+      ],
+      "confidence": 0.55,
+      "prompt_id": "prompt-989e7c64-b2d1-4b3a-8df1-a35c29260f41",
+      "human_reviewed": true,
+      "override_note": "Column is 100% NULL in source. Migrating as-is rather than defaulting to created_ts. Note: this rules it out as a watermark, so patient_records will always full-load.",
+      "source_table": "patient_records"
+    },
+    {
+      "source_column": "prv_id",
+      "target_column": "provider_id",
+      "logic": "CAST(prv_id AS INTEGER) AS provider_id -- direct 1:1 passthrough, no value transformation needed",
+      "null_handling": "No nulls observed (null_rate=0.0) and column is primary key, so nulls should not occur; if encountered, reject/flag row as data integrity violation rather than defaulting.",
+      "edge_cases": [
+        "Cardinality (40) is low relative to typical provider tables - verify this isn't a subset/sample extract rather than full population",
+        "Ensure enc_log.prv_id FK values all resolve to existing prv_id values after migration (referential integrity check)",
+        "Confirm prv_id is not reused/recycled for different providers over time (surrogate key stability)"
+      ],
+      "confidence": 0.95,
+      "prompt_id": "prompt-05bc4c6f-5b3e-45e6-b202-f62a6220bd7b",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "prv_tbl"
+    },
+    {
+      "source_column": "prv_nm",
+      "target_column": "provider_name",
+      "logic": "TRIM(prv_nm) -- copy as-is to provider_name; optionally split into title/first_name/last_name via regex: '^(Dr\\.|Mr\\.|Mrs\\.|Ms\\.)?\\s*([A-Za-z]+)\\s+([A-Za-z]+)$' capturing title, first_name, last_name",
+      "null_handling": "No NULLs observed (null_rate 0.0); if NULL occurs, set to NULL and flag record for review since provider name is expected to be required.",
+      "edge_cases": [
+        "[\"Names with middle initials or suffixes (e.g., Jr., III) not seen in sample but may exist\", \"Titles other than 'Dr.' (e.g., 'NP', 'PA') not represented in sample\", \"Hyphenated or multi-word last names (e.g., 'Van Der Berg') could break simple split logic\", \"Cardinality of 40 suggests possible duplicate names across different prv_id values, which may indicate test/sample data rather than production diversity\"]\n<parameter name=\"confidence\">0.85"
+      ],
+      "confidence": 0.0,
+      "prompt_id": "prompt-6ce43495-ec06-4f6f-88fe-9bb71541c1f0",
+      "human_reviewed": true,
+      "override_note": "Same 0.00 parse bug; actual confidence 0.85. Name kept whole rather than split into title/first/last \u2014 the regex in the comment breaks on multi-word surnames.",
+      "source_table": "prv_tbl"
+    },
+    {
+      "source_column": "prv_typ_cd",
+      "target_column": "provider_type_code",
+      "logic": "CASE prv_typ_cd WHEN 'MD' THEN 'MD' WHEN 'DO' THEN 'DO' WHEN 'NP' THEN 'NP' WHEN 'PA' THEN 'PA' ELSE prv_typ_cd END -- pass-through of existing 2-letter codes into standardized target column name; optionally join to a reference/lookup table for full description (e.g., 'MD' -> 'Medical Doctor') if target schema requires descriptive text",
+      "null_handling": "No NULLs observed (null rate 0.0); if NULLs appear in future data, map to 'UNK' or NULL depending on target schema conventions, and flag for review.",
+      "edge_cases": [
+        "Values are already valid, standard provider type abbreviations (MD, DO, NP, PA) with no unexpected codes in the observed distribution",
+        "If future data introduces other codes (e.g., 'RN', 'CNM', 'DPM'), transformation rule should be extended",
+        "Case sensitivity: assume all values are uppercase; lowercase or mixed-case variants should be normalized via UPPER() before mapping"
+      ],
+      "confidence": 0.92,
+      "prompt_id": "prompt-41ab4057-1cb3-486a-b688-2bab1d2b396c",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "prv_tbl"
+    },
+    {
+      "source_column": "dept_id",
+      "target_column": "dept_id",
+      "logic": "CAST(dept_id AS INTEGER) -- direct passthrough mapping to department_id, preserving referential integrity with dept_master.dept_id",
+      "null_handling": "Preserve NULLs as-is (set target to NULL) since null rate is 20% and may indicate providers not yet assigned to a department; do not default to 0 or fabricate a department reference.",
+      "edge_cases": [
+        "Sample values show empty string '' rather than true NULL or numeric values, which conflicts with declared INTEGER type - may indicate data quality/export issue",
+        "Cardinality of 7 suggests very few distinct departments, should be validated against dept_master row count",
+        "Empty string samples need investigation to confirm whether they represent NULL, 0, or an actual unmapped placeholder value"
+      ],
+      "confidence": 0.55,
+      "prompt_id": "prompt-986a9671-95f0-4c17-825a-dfdec5c0a811",
+      "human_reviewed": true,
+      "override_note": "Renamed to match dept_master's PK, which maps to dept_id. FK detection in generate_dbt_models.py matches on exact column name, so department_id would silently drop the prv_tbl \u2192 dept_master relationship test.",
+      "source_table": "prv_tbl"
+    },
+    {
+      "source_column": "npi_num",
+      "target_column": "npi_number",
+      "logic": "CAST(TRIM(npi_num) AS VARCHAR(10)) -- validate that value is exactly 10 digits (regex '^\\d{10}$'); no case or format conversion needed, just rename column",
+      "null_handling": "No nulls observed (null_rate 0.0); if a null were encountered, map to NULL and flag record for review since NPI is expected to be mandatory for provider identification.",
+      "edge_cases": [
+        "Values that are not exactly 10 digits (e.g., leading zeros stripped, alphanumeric)",
+        "Placeholder/test NPIs such as '0000000000' or '9999999999' should be flagged",
+        "Duplicate NPIs across different prv_id records may indicate data entry errors"
+      ],
+      "confidence": 0.9,
+      "prompt_id": "prompt-d3d430c5-08ac-4ce5-8198-095a434133a7",
+      "human_reviewed": false,
+      "override_note": null,
+      "source_table": "prv_tbl"
+    }
+  ]
+}

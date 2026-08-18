@@ -1,0 +1,1029 @@
+{
+  "generated_at": "2026-08-06T21:33:37.419490+00:00",
+  "source_db_url": "mysql+pymysql://***:***@localhost:3307/legacy_db",
+  "table_count": 5,
+  "tables": {
+    "dept_master": {
+      "row_count": 8,
+      "columns": [
+        {
+          "name": "dept_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 8,
+          "value_counts": {
+            "": 1
+          },
+          "sample_values": [
+            ""
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "dept_nm",
+          "type": "VARCHAR(100)",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 8,
+          "value_counts": {
+            "Rodriguez, Figueroa and Sanchez Dept": 1,
+            "Mcclain, Miller and Henderson Dept": 1,
+            "Johnson, Gonzalez and Santos Dept": 1,
+            "Pacheco-Smith Dept": 1,
+            "Moore-Bernard Dept": 1,
+            "Howard LLC Dept": 1,
+            "Martinez, Nielsen and Miller Dept": 1,
+            "Lee, Jones and Stanley Dept": 1
+          },
+          "sample_values": [
+            "Rodriguez, Figueroa and Sanchez Dept",
+            "Mcclain, Miller and Henderson Dept",
+            "Johnson, Gonzalez and Santos Dept",
+            "Pacheco-Smith Dept",
+            "Moore-Bernard Dept",
+            "Howard LLC Dept",
+            "Martinez, Nielsen and Miller Dept",
+            "Lee, Jones and Stanley Dept"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "person_name"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:person_name"
+          ]
+        },
+        {
+          "name": "dept_loc",
+          "type": "VARCHAR(50)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 8,
+          "value_counts": {
+            "Lake Curtis": 1,
+            "North Jefferyhaven": 1,
+            "Robinsonshire": 1,
+            "Lake Roberto": 1,
+            "Curtisfurt": 1,
+            "Lindsaymouth": 1,
+            "Mariastad": 1,
+            "Traciebury": 1
+          },
+          "sample_values": [
+            "Lake Curtis",
+            "North Jefferyhaven",
+            "Robinsonshire",
+            "Lake Roberto",
+            "Curtisfurt",
+            "Lindsaymouth",
+            "Mariastad",
+            "Traciebury"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "active_flg",
+          "type": "CHAR(1)",
+          "nullable": true,
+          "primary_key": false,
+          "default": "'Y'",
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 1,
+          "value_counts": {
+            "Y": 8
+          },
+          "sample_values": [
+            "Y"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        }
+      ],
+      "foreign_keys": []
+    },
+    "dx_codes": {
+      "row_count": 15080,
+      "columns": [
+        {
+          "name": "dx_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 15080,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "diagnosis_phi"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:diagnosis_phi"
+          ]
+        },
+        {
+          "name": "enc_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 15080,
+          "sample_values": [
+            "2",
+            "3",
+            "4",
+            "5",
+            "8",
+            "9",
+            "11",
+            "13",
+            "14",
+            "17"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "dx_cd",
+          "type": "VARCHAR(10)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 1532,
+          "null_rate": 0.1016,
+          "cardinality": 9,
+          "value_counts": {
+            "N39.0": 1582,
+            "R51": 1579,
+            "E11.9": 1542,
+            "J45.909": 1525,
+            "Z00.00": 1506,
+            "TBD": 1490,
+            "I10": 1457,
+            "M54.5": 1438,
+            "K21.9": 1429
+          },
+          "sample_values": [
+            "N39.0",
+            "R51",
+            "E11.9",
+            "J45.909",
+            "Z00.00",
+            "TBD",
+            "I10",
+            "M54.5",
+            "K21.9"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "diagnosis_phi"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:diagnosis_phi"
+          ]
+        },
+        {
+          "name": "dx_desc",
+          "type": "VARCHAR(255)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 9092,
+          "null_rate": 0.6029,
+          "cardinality": 5987,
+          "sample_values": [
+            "Learn well anything.",
+            "Each near manage do question.",
+            "Wait issue surface bad.",
+            "Just administration author.",
+            "Education present morning move learn.",
+            "Hard entire hit participant.",
+            "Stock read take attorney.",
+            "Crime significant movement.",
+            "Senior discover wish friend.",
+            "Find carry."
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "diagnosis_phi"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:diagnosis_phi"
+          ]
+        },
+        {
+          "name": "primary_flg",
+          "type": "CHAR(1)",
+          "nullable": true,
+          "primary_key": false,
+          "default": "'N'",
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 2,
+          "value_counts": {
+            "N": 7639,
+            "Y": 7441
+          },
+          "sample_values": [
+            "N",
+            "Y"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "enc_id",
+          "references_table": "enc_log",
+          "references_column": "enc_id"
+        }
+      ]
+    },
+    "enc_log": {
+      "row_count": 25000,
+      "columns": [
+        {
+          "name": "enc_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 25000,
+          "sample_values": [
+            "997",
+            "4153",
+            "4634",
+            "6005",
+            "19609",
+            "18504",
+            "4916",
+            "5946",
+            "8821",
+            "15556"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "pat_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 10541,
+          "sample_values": [
+            "2",
+            "3",
+            "5",
+            "6",
+            "7",
+            "8",
+            "10",
+            "11",
+            "12",
+            "13"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "prv_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 2502,
+          "null_rate": 0.1001,
+          "cardinality": 40,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "enc_typ_cd",
+          "type": "VARCHAR(2)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 4,
+          "value_counts": {
+            "ER": 6325,
+            "OP": 6252,
+            "TC": 6215,
+            "IP": 6208
+          },
+          "sample_values": [
+            "ER",
+            "OP",
+            "TC",
+            "IP"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "enc_dt",
+          "type": "DATETIME",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 24998,
+          "sample_values": [
+            "2022-02-22 02:43:28",
+            "2025-07-05 16:39:28",
+            "2025-08-15 21:16:03",
+            "2024-03-06 05:39:59",
+            "2023-06-18 20:00:04",
+            "2025-07-23 02:58:58",
+            "2022-09-24 04:43:51",
+            "2024-03-27 04:26:47",
+            "2024-03-07 05:40:30",
+            "2024-08-05 21:48:34"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "service_date_phi"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:service_date_phi"
+          ]
+        },
+        {
+          "name": "bill_amt",
+          "type": "DECIMAL(10, 2)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 24771,
+          "sample_values": [
+            "14804.18",
+            "9168.08",
+            "846.78",
+            "1002.97",
+            "13577.22",
+            "5758.36",
+            "3464.40",
+            "8047.36",
+            "2911.27",
+            "14527.72"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "pmt_st_cd",
+          "type": "VARCHAR(1)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 5,
+          "value_counts": {
+            "P": 12451,
+            "U": 7499,
+            "W": 3058,
+            "R": 1506,
+            "?": 486
+          },
+          "sample_values": [
+            "P",
+            "U",
+            "W",
+            "R",
+            "?"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "notes_txt",
+          "type": "TEXT",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 17569,
+          "null_rate": 0.7028,
+          "cardinality": 7431,
+          "sample_values": [
+            "Fact relate maybe both law course agent.",
+            "Every car kid yourself.",
+            "Account politics need argue certain.",
+            "Ten nice couple blood benefit present.",
+            "Government your note for party necessary nature.",
+            "Them myself wait into wrong learn performance cost.",
+            "Member fill line from herself.",
+            "Possible final personal the guess teacher catch threat.",
+            "Ahead give again memory guess head.",
+            "Of whose on unit final entire left."
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "pat_id",
+          "references_table": "patient_records",
+          "references_column": "pat_id"
+        },
+        {
+          "column": "prv_id",
+          "references_table": "prv_tbl",
+          "references_column": "prv_id"
+        }
+      ]
+    },
+    "patient_records": {
+      "row_count": 12000,
+      "columns": [
+        {
+          "name": "pat_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 12000,
+          "sample_values": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "pat_st_cd",
+          "type": "VARCHAR(2)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 6,
+          "value_counts": {
+            "A": 4959,
+            "D": 3661,
+            "I": 1784,
+            "S": 1234,
+            " D": 232,
+            "X": 130
+          },
+          "sample_values": [
+            "A",
+            "D",
+            "I",
+            "S",
+            " D",
+            "X"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "fst_nm",
+          "type": "VARCHAR(80)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 673,
+          "sample_values": [
+            "Bernard",
+            "Leslie",
+            "Joseph",
+            "Sarah",
+            "Anna",
+            "David",
+            "Justin",
+            "Tonya",
+            "Angela",
+            "Juan"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "person_name"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:person_name"
+          ]
+        },
+        {
+          "name": "lst_nm",
+          "type": "VARCHAR(80)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 989,
+          "sample_values": [
+            "Miller",
+            "Green",
+            "Anderson",
+            "Walls",
+            "Garcia",
+            "Bailey",
+            "Kim",
+            "Roman",
+            "Huynh",
+            "Preston"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "person_name"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:person_name"
+          ]
+        },
+        {
+          "name": "dob",
+          "type": "DATE",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 10180,
+          "sample_values": [
+            "1993-09-09",
+            "1994-11-16",
+            "1992-07-19",
+            "1931-06-23",
+            "1982-03-12",
+            "1937-03-09",
+            "1982-09-24",
+            "1981-05-11",
+            "1940-07-11",
+            "2001-11-08"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "date_of_birth"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:date_of_birth"
+          ]
+        },
+        {
+          "name": "sex_cd",
+          "type": "CHAR(1)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 221,
+          "null_rate": 0.0184,
+          "cardinality": 3,
+          "value_counts": {
+            "M": 5728,
+            "F": 5558,
+            "U": 493
+          },
+          "sample_values": [
+            "M",
+            "F",
+            "U"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "admit_dt",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 12000,
+          "sample_values": [
+            "2024-06-23 20:24:52",
+            "2024-05-29 20:18:17",
+            "2023-02-26 09:23:19",
+            "2023-11-14 14:41:29",
+            "2024-09-08 23:45:06",
+            "2024-02-11 11:24:22",
+            "2022-10-21 17:46:47",
+            "2023-02-05 02:03:01",
+            "2024-12-03 06:43:47",
+            "2025-12-22 06:20:17"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "service_date_phi"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:service_date_phi"
+          ]
+        },
+        {
+          "name": "discharge_dt",
+          "type": "DATETIME",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 1786,
+          "null_rate": 0.1488,
+          "cardinality": 10214,
+          "sample_values": [
+            "2024-06-24 20:24:52",
+            "2023-03-12 09:23:19",
+            "2023-11-25 14:41:29",
+            "2024-09-22 23:45:06",
+            "2022-11-03 17:46:47",
+            "2023-02-11 02:03:01",
+            "2024-12-10 06:43:47",
+            "2022-05-20 12:10:56",
+            "2025-01-12 03:15:40",
+            "2021-10-23 03:21:25"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "service_date_phi"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:service_date_phi"
+          ]
+        },
+        {
+          "name": "created_ts",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "primary_key": false,
+          "default": "CURRENT_TIMESTAMP",
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 5,
+          "value_counts": {
+            "atetime.datetime(2026, 8, 1, 14, 23, 14": 3273,
+            "atetime.datetime(2026, 8, 1, 14, 23, 16": 3261,
+            "atetime.datetime(2026, 8, 1, 14, 23, 15": 3144,
+            "atetime.datetime(2026, 8, 1, 14, 23, 13": 1583,
+            "atetime.datetime(2026, 8, 1, 14, 23, 17": 739
+          },
+          "sample_values": [
+            "atetime.datetime(2026, 8, 1, 14, 23, 14",
+            "atetime.datetime(2026, 8, 1, 14, 23, 16",
+            "atetime.datetime(2026, 8, 1, 14, 23, 15",
+            "atetime.datetime(2026, 8, 1, 14, 23, 13",
+            "atetime.datetime(2026, 8, 1, 14, 23, 17"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "updated_ts",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 12000,
+          "null_rate": 1.0,
+          "cardinality": 0,
+          "sample_values": [],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        }
+      ],
+      "foreign_keys": []
+    },
+    "prv_tbl": {
+      "row_count": 40,
+      "columns": [
+        {
+          "name": "prv_id",
+          "type": "INTEGER",
+          "nullable": false,
+          "primary_key": true,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 40,
+          "sample_values": [
+            "4",
+            "8",
+            "9",
+            "10",
+            "21",
+            "23",
+            "34",
+            "37",
+            "1",
+            "6"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "prv_nm",
+          "type": "VARCHAR(150)",
+          "nullable": false,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 40,
+          "sample_values": [
+            "Dr. Jamie Chavez",
+            "Dr. Henry Santiago",
+            "Dr. Kimberly Sanchez",
+            "Dr. Timothy Watts",
+            "Dr. Renee Morales",
+            "Dr. Latoya Robbins",
+            "Dr. Maria Thomas",
+            "Dr. Kimberly Burgess",
+            "Dr. Zachary Taylor",
+            "Dr. Shannon Hernandez"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "person_name"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:person_name"
+          ]
+        },
+        {
+          "name": "prv_typ_cd",
+          "type": "VARCHAR(2)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 4,
+          "value_counts": {
+            "MD": 13,
+            "DO": 10,
+            "NP": 9,
+            "PA": 8
+          },
+          "sample_values": [
+            "MD",
+            "DO",
+            "NP",
+            "PA"
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "dept_id",
+          "type": "INTEGER",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 8,
+          "null_rate": 0.2,
+          "cardinality": 7,
+          "value_counts": {
+            "": 2
+          },
+          "sample_values": [
+            ""
+          ],
+          "is_pii": false,
+          "pii_categories": [],
+          "pii_detection_methods": []
+        },
+        {
+          "name": "npi_num",
+          "type": "VARCHAR(10)",
+          "nullable": true,
+          "primary_key": false,
+          "default": null,
+          "null_count": 0,
+          "null_rate": 0.0,
+          "cardinality": 40,
+          "sample_values": [
+            "8877444318",
+            "9896606039",
+            "7280359794",
+            "1240251661",
+            "1284277889",
+            "7439149233",
+            "1599707677",
+            "7801222128",
+            "3119634399",
+            "8217611860"
+          ],
+          "is_pii": true,
+          "pii_categories": [
+            "phone",
+            "provider_identifier"
+          ],
+          "pii_detection_methods": [
+            "name_pattern:provider_identifier",
+            "value_pattern:phone",
+            "value_pattern:phone",
+            "value_pattern:phone",
+            "value_pattern:phone",
+            "value_pattern:phone",
+            "value_pattern:phone",
+            "value_pattern:phone",
+            "value_pattern:phone",
+            "value_pattern:phone",
+            "value_pattern:phone"
+          ]
+        }
+      ],
+      "foreign_keys": [
+        {
+          "column": "dept_id",
+          "references_table": "dept_master",
+          "references_column": "dept_id"
+        }
+      ]
+    }
+  },
+  "fk_graph": [
+    {
+      "from_table": "dx_codes",
+      "from_column": "enc_id",
+      "to_table": "enc_log",
+      "to_column": "enc_id"
+    },
+    {
+      "from_table": "enc_log",
+      "from_column": "pat_id",
+      "to_table": "patient_records",
+      "to_column": "pat_id"
+    },
+    {
+      "from_table": "enc_log",
+      "from_column": "prv_id",
+      "to_table": "prv_tbl",
+      "to_column": "prv_id"
+    },
+    {
+      "from_table": "prv_tbl",
+      "from_column": "dept_id",
+      "to_table": "dept_master",
+      "to_column": "dept_id"
+    }
+  ],
+  "pii_summary": {
+    "dept_master": [
+      {
+        "column": "dept_nm",
+        "categories": [
+          "person_name"
+        ]
+      }
+    ],
+    "dx_codes": [
+      {
+        "column": "dx_id",
+        "categories": [
+          "diagnosis_phi"
+        ]
+      },
+      {
+        "column": "dx_cd",
+        "categories": [
+          "diagnosis_phi"
+        ]
+      },
+      {
+        "column": "dx_desc",
+        "categories": [
+          "diagnosis_phi"
+        ]
+      }
+    ],
+    "enc_log": [
+      {
+        "column": "enc_dt",
+        "categories": [
+          "service_date_phi"
+        ]
+      }
+    ],
+    "patient_records": [
+      {
+        "column": "fst_nm",
+        "categories": [
+          "person_name"
+        ]
+      },
+      {
+        "column": "lst_nm",
+        "categories": [
+          "person_name"
+        ]
+      },
+      {
+        "column": "dob",
+        "categories": [
+          "date_of_birth"
+        ]
+      },
+      {
+        "column": "admit_dt",
+        "categories": [
+          "service_date_phi"
+        ]
+      },
+      {
+        "column": "discharge_dt",
+        "categories": [
+          "service_date_phi"
+        ]
+      }
+    ],
+    "prv_tbl": [
+      {
+        "column": "prv_nm",
+        "categories": [
+          "person_name"
+        ]
+      },
+      {
+        "column": "npi_num",
+        "categories": [
+          "phone",
+          "provider_identifier"
+        ]
+      }
+    ]
+  }
+}

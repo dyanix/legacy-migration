@@ -1,0 +1,1384 @@
+{
+  "generated_at": "2026-08-12T19:30:10.904653+00:00",
+  "table_overviews": {
+    "dept_master": "dept_master holds 8 department records, each with a unique identifier, name, location, and active status, and serves as a reference table joined to prv_tbl via dept_id as a foreign key. Consumers should note that department_name is flagged as containing person_name-type sensitive data and appears synthetically generated with a literal \" Dept\" suffix that may need stripping, while dept_location values also look synthetic and lack standardized formatting. The is_active flag has only been observed with the value \"Y\" in this dataset, so handling of \"N\" or other values is untested, and dept_id's low cardinality relative to a full load warrants verification that this represents the complete table.",
+    "dx_codes": "The dx_codes table holds diagnosis records (15,080 rows, full load), with each row linking via encounter_id to a single visit in enc_log and identifying whether it was the primary diagnosis for that encounter. Diagnosis codes are intended to follow ICD-10-CM format but include a \"TBD\" placeholder in roughly 11% of rows and nulls in about 10%, with unclear distinction between the two; dx_description has been human-reviewed but appears to contain synthetic/placeholder text with a 60% null rate rather than genuine clinical descriptions, and lacks a validated link to a standard code description table. Consumers should treat diagnosis_code and dx_description as sensitive (diagnosis_phi), confirm encounter_id foreign keys against enc_log before use, and not assume a validated one-diagnosis-per-encounter constraint on is_primary_diagnosis.",
+    "enc_log": "The enc_log table captures individual patient encounter records (25,000 rows, full load), including encounter timing, type, billing amount, payment status, and free-text notes, with encounter_id as its primary key. It links to patient_records via patient_id, to prv_tbl via provider_id, and to dx_codes via encounter_id, while dept_master is referenced elsewhere in the model though not directly joined from columns listed here. Consumers should note that encounter_datetime is treated as sensitive (service_date_phi), encounter_type_code and payment_status_code use human-reviewed but unconfirmed single/double-letter code mappings (including an unresolved '?' status value), and the notes field appears to contain synthetic/placeholder text rather than genuine clinical documentation.",
+    "patient_records": "patient_records holds one row per patient (12,000 total, full load) with demographic, administrative, and status details, keyed by patient_id, which enc_log references via pat_id to link patients to their encounters; dept_master, dx_codes, and prv_tbl are not directly joined by columns present here. Consumers should treat first_name, last_name, and date_of_birth as sensitive person-level PHI, and admission_datetime/discharge_datetime as service-date PHI, with discharge_datetime null for ~14.88% of records (likely still-admitted patients). Human-reviewed fields include patient_status_code (note the ' D' whitespace variant and ambiguous 'X' code), last_name, created_ts, and updated_at; created_ts values are malformed stringified datetime objects with a truncated \"datetime\" prefix and low cardinality suggesting batch-load timestamps, while updated_at is entirely null in the observed data and may be unused.",
+    "prv_tbl": "This table holds provider records (40 rows, full load), with provider_id serving as the primary key referenced by enc_log to associate encounters with the provider involved, and dept_id serving as a foreign key linking each provider to a department in dept_master; no direct relationship to dx_codes or patient_records is indicated by the columns present. Consumers should note that provider_name is a sensitive person_name field that has been human-reviewed, npi_number is sensitive (flagged as phone/provider_identifier) and should be validated for correct 10-digit formatting and non-placeholder values, and dept_id contains empty-string values inconsistent with its declared integer type, warranting investigation before use. The low row count and human-reviewed dept_id mapping suggest this may be a curated or sample extract rather than a full production population, so referential integrity against enc_log and dept_master should be verified before downstream use."
+  },
+  "descriptions_source": "approved mappings, llm table overviews",
+  "table_count": 5,
+  "column_count": 32,
+  "tables": {
+    "dept_master": [
+      {
+        "target_column": "dept_id",
+        "source_column": "dept_id",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": true,
+        "transformation": "CAST(dept_id AS INTEGER) -- direct pass-through, no transformation needed; preserve as primary key",
+        "confidence": 0.75,
+        "rule_id": null,
+        "prompt_id": "prompt-ec0e1df3-cb91-4fab-b089-a49cdc293552",
+        "ai_reasoning": "The column name, INTEGER type, primary key flag, and FK reference from prv_tbl strongly indicate this is a standard surrogate/natural key for departments -- a very common pattern. However, confidence is capped below 0.80 because the sample value distribution shows an empty string '' as the only observed value (count 1), which contradicts both the INTEGER type and the 0.0 null rate. This inconsistency suggests either a metadata extraction issue or unexpected blank values in the source that warrant human review before finalizing the transformation as a simple pass-through.",
+        "null_handling": "Column is declared as primary key with 0.0 null rate; no NULLs expected. If a NULL/empty value is encountered, reject the row or flag for manual review since a PK cannot be null.",
+        "edge_cases": [
+          "Sample value shown as empty string '' despite type INTEGER and null_rate 0.0 -- likely a data extraction/display artifact rather than an actual empty value; needs verification against raw source.",
+          "Cardinality of 8 seems low for a primary key spanning what could be a larger dept_master table -- verify if this reflects the full table or a sample.",
+          "Ensure FK relationship consistency: prv_tbl.dept_id values must all exist in dept_master.dept_id."
+        ],
+        "human_reviewed": true,
+        "review_decision": "approve",
+        "reviewed_at": "2026-08-09T18:18:16.885241+00:00",
+        "override_rationale": "Pass-through PK confirmed. Empty-string sample is a profiler display artifact, not source data \u2014 dept_id is populated for all 8 rows.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Unique numeric identifier for a department record, serving as the primary key of dept_master and referenced by prv_tbl.dept_id as a foreign key.",
+        "description": "Unique numeric identifier for a department record, serving as the primary key of dept_master and referenced by prv_tbl.dept_id as a foreign key."
+      },
+      {
+        "target_column": "department_name",
+        "source_column": "dept_nm",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": false,
+        "transformation": "TRIM(dept_nm) -- direct passthrough, no case/format change since values already appear as intended display names; optionally CAST to VARCHAR(100) to match target schema",
+        "confidence": 0.82,
+        "rule_id": null,
+        "prompt_id": "prompt-80fa6dc9-f515-4701-9a43-0b4d93741de8",
+        "ai_reasoning": "The column name 'dept_nm' clearly abbreviates 'department name', and it sits alongside dept_id, dept_loc, and active_flg in a dept_master table -- a classic master-data pattern (id, name, location, status flag). The values are well-formed strings ending in 'Dept', strongly indicating they are department names. Confidence is not higher because the data looks synthetically generated (faker-style company names), and it's ambiguous whether the trailing 'Dept' suffix is intentional business convention or an artifact that should be stripped during migration -- this warrants a quick human check before finalizing the transformation rule.",
+        "null_handling": "No NULLs observed (null_rate = 0.0); if NULL occurs in future loads, map to NULL (do not default to empty string) and flag row for review since dept_master likely requires a non-null name",
+        "edge_cases": [
+          "All sample values end with literal ' Dept' suffix -- unclear if this should be stripped or preserved in target system",
+          "Values resemble faker-generated company names (e.g., 'Howard LLC') rather than typical real-world department names (e.g., 'Finance', 'HR'), suggesting this may be synthetic/test data",
+          "High uniqueness (cardinality 8 matching row count) suggests each row has a distinct name, consistent with a name/label column rather than a categorical code",
+          "Punctuation variety (commas, hyphens, 'and', 'LLC') may need normalization depending on downstream consumer expectations"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "person_name"
+        ],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Name/label of the department, appearing to be auto-generated from company-style naming patterns (e.g., \"Rodriguez, Figueroa and Sanchez Dept\") combined with a literal \"Dept\" suffix, used as the human-readable identifier for a department record in dept_master",
+        "description": "Name/label of the department, appearing to be auto-generated from company-style naming patterns (e.g., \"Rodriguez, Figueroa and Sanchez Dept\") combined with a literal \"Dept\" suffix, used as the human-readable identifier for a department record in dept_master"
+      },
+      {
+        "target_column": "dept_location",
+        "source_column": "dept_loc",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "TRIM(dept_loc) -- direct pass-through rename, no value transformation needed",
+        "confidence": 0.8,
+        "rule_id": null,
+        "prompt_id": "prompt-d5b34be4-8f02-4992-a2c3-a9127d6d6ae1",
+        "ai_reasoning": "The column name 'dept_loc' clearly abbreviates 'department location', and the sample values are place-like names (cities, towns), strongly supporting a straightforward semantic mapping to a location/city field. Confidence is capped at 0.8 rather than higher because: (1) the values look synthetically generated (common faker patterns like 'Xfurt', 'Xmouth', 'Xstad', 'Xshire', 'Xbury'), raising uncertainty about whether this reflects real production data or test data with placeholder semantics; (2) there's no corroborating column (e.g., dept_state, dept_country) to confirm this is meant as a full location field versus a code or region name; (3) no business documentation confirms whether 'location' here means office city, region, or a facility name. Human review is recommended to confirm intended semantics and whether further normalization (e.g., splitting into city/state) is needed.",
+        "null_handling": "No nulls observed (null_rate 0.0); if NULL encountered, preserve as NULL rather than substituting a default, since location is descriptive metadata not required for referential integrity",
+        "edge_cases": [
+          "All sample values appear to be synthetically generated place names (e.g., 'Lake Curtis', 'Traciebury'), consistent with faker-generated city names rather than real-world locations",
+          "Cardinality equals row count (8/8 unique), suggesting each department has a distinct location, but this should be verified against expected business rules (e.g., can two departments share a location?)",
+          "No standardization of format (city vs. city+state) is evident; downstream systems expecting structured address fields (city, state, country) would need this field parsed or supplemented"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Location/city name associated with a department, likely representing the department's physical office or branch location",
+        "description": "Location/city name associated with a department, likely representing the department's physical office or branch location"
+      },
+      {
+        "target_column": "is_active",
+        "source_column": "active_flg",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CASE WHEN active_flg = 'Y' THEN TRUE WHEN active_flg = 'N' THEN FALSE ELSE NULL END",
+        "confidence": 0.75,
+        "rule_id": null,
+        "prompt_id": "prompt-f37ec6a3-9d32-488e-998d-633224001388",
+        "ai_reasoning": "The column name 'active_flg' and CHAR(1) type strongly suggest a boolean-style Y/N flag, a common convention. However, since only 'Y' appears in the entire dataset (cardinality=1), we cannot confirm the actual representation of 'inactive' (e.g., 'N', 'F', blank, or NULL). This ambiguity around the negative case lowers confidence below the high-confidence threshold, warranting human review before finalizing the transformation rule.",
+        "null_handling": "No nulls observed (null_rate 0.0); if NULL occurs, map to NULL and flag for review since no default 'inactive' assumption should be made without confirmation.",
+        "edge_cases": [
+          "Only value observed is 'Y' (cardinality=1), so 'N' or other values (e.g., lowercase, blank) are untested and may require additional mapping logic.",
+          "Sample size is very small (8 rows), so distribution may not reflect full production data."
+        ],
+        "human_reviewed": true,
+        "review_decision": "approve",
+        "reviewed_at": "2026-08-09T18:18:32.137660+00:00",
+        "override_rationale": "Y/N/else-NULL is correct. Only 'Y' present today; rule handles 'N' if it appears and refuses to guess on anything else.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Flag indicating whether the department record is currently active (Y=active, presumably N=inactive though not observed)",
+        "description": "Flag indicating whether the department record is currently active (Y=active, presumably N=inactive though not observed)"
+      }
+    ],
+    "dx_codes": [
+      {
+        "target_column": "dx_id",
+        "source_column": "dx_id",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": true,
+        "transformation": "CAST(dx_id AS INTEGER) -- direct passthrough, no transformation needed",
+        "confidence": 0.98,
+        "rule_id": null,
+        "prompt_id": "prompt-a8e9d98e-f8a1-4d3e-bbbb-086599a421cc",
+        "ai_reasoning": "Column name 'dx_id' combined with primary_key=True, integer type, zero null rate, and sequential sample values (1-10) strongly indicates a standard surrogate primary key for the diagnosis codes table. No transformation is needed beyond ensuring type consistency; this is a high-confidence, low-ambiguity mapping.",
+        "null_handling": "No nulls expected/allowed; column is primary key and null rate is 0.0. If a null is encountered, reject/flag the row as data integrity violation.",
+        "edge_cases": [
+          "Sequential integer values suggest auto-increment behavior; gaps in sequence may occur due to deleted records",
+          "Cardinality (15080) should match row count for table if truly unique primary key"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "diagnosis_phi"
+        ],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Surrogate primary key uniquely identifying each diagnosis record in the dx_codes table",
+        "description": "Surrogate primary key uniquely identifying each diagnosis record in the dx_codes table"
+      },
+      {
+        "target_column": "encounter_id",
+        "source_column": "enc_id",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": false,
+        "transformation": "SELECT enc_id AS encounter_id FROM dx_codes -- direct passthrough, cast to INTEGER if not already; validate referential integrity against enc_log.enc_id",
+        "confidence": 0.95,
+        "rule_id": null,
+        "prompt_id": "prompt-f7b81421-a523-4565-9db8-e1e2e87727d6",
+        "ai_reasoning": "The column is explicitly documented as a foreign key to enc_log.enc_id, the naming convention (enc_id) is consistent and unambiguous, and it's a standard integer surrogate key with no nulls. This is a straightforward FK rename/passthrough mapping to a more descriptive snake_case name (encounter_id) consistent with typical migration naming conventions, with high confidence given the explicit FK relationship metadata.",
+        "null_handling": "No NULLs present (null_rate 0.0); if NULLs were to appear, they would indicate an orphaned diagnosis record and should be flagged/rejected rather than defaulted, since this is a required FK relationship.",
+        "edge_cases": [
+          "Values in enc_id that do not exist in enc_log.enc_id (orphaned FK) should be flagged during migration",
+          "Cardinality (15080) is lower than typical dx_codes row count, implying multiple dx codes per encounter -- expected many-to-one relationship, not an anomaly",
+          "Ensure data type consistency (INTEGER) between source and target enc_log.enc_id"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Foreign key referencing the encounter (visit) record associated with this diagnosis code entry, linking dx_codes to the enc_log table",
+        "description": "Foreign key referencing the encounter (visit) record associated with this diagnosis code entry, linking dx_codes to the enc_log table"
+      },
+      {
+        "target_column": "diagnosis_code",
+        "source_column": "dx_cd",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "UPPER(TRIM(dx_cd))",
+        "confidence": 0.75,
+        "rule_id": null,
+        "prompt_id": "prompt-fe900418-52e8-4635-adfb-d58743a48691",
+        "ai_reasoning": "The column name 'dx_cd' combined with sample values matching standard ICD-10-CM diagnosis code formats (e.g., N39.0, E11.9, J45.909, I10) strongly indicates this is a diagnosis code field, consistent with the table name 'dx_codes' and sibling columns like 'dx_desc' (diagnosis description) and 'primary_flg' (likely indicating primary diagnosis). Confidence is capped below 0.80 because of the presence of 'TBD' as a placeholder value mixed in with valid codes (~11% of records), which is ambiguous -- it's unclear whether this should be nulled out, retained as a distinct 'pending' status, or handled via a separate workflow flag. This requires human/business confirmation before finalizing the transformation, especially regarding whether 'TBD' and true NULLs should be treated identically downstream.",
+        "null_handling": "Preserve existing NULLs as NULL (missing/unrecorded diagnosis). Additionally, map the literal placeholder value 'TBD' to NULL since it represents an unassigned/pending diagnosis code rather than a valid ICD-10 code, and flag these rows for follow-up/completion.",
+        "edge_cases": [
+          "'TBD' is a non-ICD-10 placeholder value (~11% of rows) indicating the diagnosis code has not yet been determined - should not be treated as a valid code",
+          "Codes follow standard ICD-10-CM format (letter + 2 digits, optional decimal + up to 4 more chars) except for 'TBD'",
+          "Null rate of 10.16% may overlap conceptually with 'TBD' entries - need to confirm with source system whether NULL and 'TBD' have distinct business meanings or are used interchangeably",
+          "Case sensitivity - codes appear uppercase; downstream systems may expect this normalized"
+        ],
+        "human_reviewed": true,
+        "review_decision": "override",
+        "reviewed_at": "2026-08-09T18:23:09.866780+00:00",
+        "override_rationale": "Preserving 'TBD' rather than nulling it. TBD is ~11% of rows and source already has 10.16% true NULLs; mapping TBD to NULL merges \"diagnosis pending\" with \"diagnosis absent\" and the distinction is unrecoverable after migration.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "diagnosis_phi"
+        ],
+        "source_null_rate": 0.1016,
+        "inferred_meaning": "ICD-10-CM diagnosis code assigned to an encounter, identifying the medical diagnosis (e.g., N39.0 = Urinary tract infection, E11.9 = Type 2 diabetes without complications)",
+        "description": "ICD-10-CM diagnosis code assigned to an encounter, identifying the medical diagnosis (e.g., N39.0 = Urinary tract infection, E11.9 = Type 2 diabetes without complications)"
+      },
+      {
+        "target_column": "dx_description",
+        "source_column": "dx_desc",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "TRIM(dx_desc)",
+        "confidence": 0.4,
+        "rule_id": null,
+        "prompt_id": "prompt-e536f024-9265-4a9f-b09a-7db6c568b5ed",
+        "ai_reasoning": "While the column name and table context (dx_codes, dx_cd, primary_flg) strongly suggest this should be a diagnosis description field, the actual sample values are clearly synthetic/randomly generated sentences unrelated to real medical terminology. This mismatch between expected semantic content and observed data makes it risky to assume a straightforward one-to-one mapping or that the field reliably contains diagnosis descriptions in the source system. The structural inference (rename to dx_description) is reasonable, but confidence is lowered below 0.80 to flag for human review given the apparent placeholder/test nature of the data and unusually high null rate.",
+        "null_handling": "Preserve NULLs as NULL (high null rate ~60% suggests description is often not populated); do not default to empty string or placeholder text",
+        "edge_cases": [
+          "Sample values look like synthetic/mock data (e.g., 'Learn well anything.', 'Find carry.') rather than plausible medical diagnosis descriptions, suggesting this is test/fake data",
+          "High cardinality (5987) relative to likely diagnosis code set implies descriptions may not correspond 1:1 with dx_cd, or data is fabricated",
+          "60% null rate is unusually high for a description field tied to an actual diagnosis code - may indicate incomplete population or optional field",
+          "No FK relationship to a standard code table (e.g., ICD-9/10 descriptions) to validate against"
+        ],
+        "human_reviewed": true,
+        "review_decision": "override",
+        "reviewed_at": "2026-08-09T18:23:39.515599+00:00",
+        "override_rationale": "Removed CAST to VARCHAR(255) \u2014 dx_desc is TEXT and the cast silently truncates anything longer.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "diagnosis_phi"
+        ],
+        "source_null_rate": 0.6029,
+        "inferred_meaning": "Intended to be a free-text description of a diagnosis code (dx_cd) associated with an encounter, but the sample values appear to be randomly generated placeholder/lorem-ipsum-style text rather than real clinical diagnosis descriptions",
+        "description": "Intended to be a free-text description of a diagnosis code (dx_cd) associated with an encounter, but the sample values appear to be randomly generated placeholder/lorem-ipsum-style text rather than real clinical diagnosis descriptions"
+      },
+      {
+        "target_column": "is_primary_diagnosis",
+        "source_column": "primary_flg",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CASE WHEN primary_flg = 'Y' THEN TRUE WHEN primary_flg = 'N' THEN FALSE ELSE NULL END",
+        "confidence": 0.95,
+        "rule_id": null,
+        "prompt_id": "prompt-d0c7070d-444b-4f3b-ae17-25a8b95d53a4",
+        "ai_reasoning": "The column name 'primary_flg' combined with binary Y/N values and context (dx_codes table with dx_id, enc_id, dx_cd, dx_desc) strongly suggests a boolean flag denoting whether a diagnosis code is the primary diagnosis for an encounter. This is a common pattern in clinical/EHR data models. The transformation to a boolean is straightforward given only two clean values and no nulls.",
+        "null_handling": "No nulls present in source data (null_rate 0.0); if a null were encountered, map to NULL (unknown) rather than defaulting to FALSE, to avoid misrepresenting diagnosis status.",
+        "edge_cases": [
+          "Only 'Y' and 'N' values observed; no unexpected codes present",
+          "If future data introduces other values (e.g., blank, '1'/'0', lowercase 'y'/'n'), transformation logic should be updated to handle them",
+          "Assumes only one primary diagnosis per encounter (enc_id) - not validated here, may need uniqueness check downstream"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Flag indicating whether this diagnosis code is the primary diagnosis for the associated encounter (Y) or a secondary/non-primary diagnosis (N)",
+        "description": "Flag indicating whether this diagnosis code is the primary diagnosis for the associated encounter (Y) or a secondary/non-primary diagnosis (N)"
+      }
+    ],
+    "enc_log": [
+      {
+        "target_column": "encounter_id",
+        "source_column": "enc_id",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": true,
+        "transformation": "CAST(enc_id AS INTEGER) AS encounter_id",
+        "confidence": 0.97,
+        "rule_id": null,
+        "prompt_id": "prompt-9518d07c-6c12-40ed-9414-4a0adfd8a7de",
+        "ai_reasoning": "Column name 'enc_id' combined with table name 'enc_log' and its role as primary key strongly indicates it is the encounter identifier. It's referenced as a foreign key from dx_codes.enc_id, confirming its role as the canonical encounter identifier used across tables. Straightforward rename to snake_case 'encounter_id' with direct type cast preserves semantics with high confidence.",
+        "null_handling": "Column is non-nullable (null rate 0.0); primary key should never be null. If a null is encountered, flag row for review/reject rather than defaulting.",
+        "edge_cases": [
+          "Ensure no duplicate values since it's a primary key with cardinality equal to row count",
+          "Value range/formatting should be validated against dx_codes.enc_id FK to ensure referential integrity",
+          "If source system reuses IDs after deletion, historical joins could break"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Unique numeric identifier for an encounter record (primary key of enc_log table, representing a single patient encounter/visit)",
+        "description": "Unique numeric identifier for an encounter record (primary key of enc_log table, representing a single patient encounter/visit)"
+      },
+      {
+        "target_column": "patient_id",
+        "source_column": "pat_id",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": false,
+        "transformation": "SELECT CAST(pat_id AS INTEGER) AS patient_id FROM enc_log -- direct passthrough, maps 1:1 to patient_records.pat_id",
+        "confidence": 0.97,
+        "rule_id": null,
+        "prompt_id": "prompt-934ae664-3345-405b-bf72-e24f58369ddd",
+        "ai_reasoning": "Column name pat_id, its integer type, explicit FK declaration to patient_records.pat_id, and zero null rate strongly indicate this is a straightforward foreign key linking each encounter log row to a patient. Naming convention (pat_id -> patient_id) is a standard snake_case expansion. High confidence due to explicit FK metadata and consistent data pattern.",
+        "null_handling": "No nulls observed (null_rate 0.0); if a null were encountered, it should be treated as invalid/orphaned encounter record and flagged for review rather than defaulted, since every encounter should belong to a patient.",
+        "edge_cases": [
+          "Values must exist in patient_records.pat_id; any pat_id not found there indicates referential integrity issue.",
+          "Non-primary-key status in enc_log means duplicate pat_id values are expected (one patient can have many encounters).",
+          "Cardinality (10541) is lower than typical row count of enc_log, consistent with FK to a smaller patient table."
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Foreign key referencing the patient record associated with this encounter log entry (i.e., the patient who received the encounter/service)",
+        "description": "Foreign key referencing the patient record associated with this encounter log entry (i.e., the patient who received the encounter/service)"
+      },
+      {
+        "target_column": "provider_id",
+        "source_column": "prv_id",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CAST(prv_id AS INTEGER) AS provider_id -- direct passthrough, no value transformation needed; ensure referential integrity against prv_tbl.prv_id",
+        "confidence": 0.9,
+        "rule_id": null,
+        "prompt_id": "prompt-e0391554-06aa-4a6a-ac0d-01113414d83c",
+        "ai_reasoning": "Column name 'prv_id' combined with explicit FK metadata (prv_id -> prv_tbl.prv_id) and table context (enc_log = encounter log, alongside enc_id, pat_id, enc_typ_cd, bill_amt) strongly indicates this is the provider identifier tied to each encounter. The naming convention and declared foreign key relationship leave little ambiguity about the semantic meaning, so no value-level transformation is needed beyond a straightforward rename/passthrough. Confidence is high (0.9) but not maximal since the 10% null rate and its business justification (why some encounters lack a provider) is not fully verified and would benefit from human confirmation.",
+        "null_handling": "Preserve NULL as NULL; NULL likely indicates the encounter had no assigned/known provider at time of recording (e.g., self-service, unassigned, or data entry gap). Do not default to 0 or a sentinel value -- keep as NULL to avoid falsely implying a valid provider link. Flag rows with NULL prv_id for review if downstream reporting requires a provider on every encounter.",
+        "edge_cases": [
+          "10% null rate suggests a systematic reason (e.g., certain encounter types like self-check-in or automated billing may not require a provider) rather than random missingness -- worth investigating enc_typ_cd correlation",
+          "Cardinality of 40 distinct providers should be cross-checked against total row count in prv_tbl to ensure no orphaned FK values exist",
+          "Integer type with FK relationship implies simple surrogate key join; no transformation of value itself expected"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.1001,
+        "inferred_meaning": "Foreign key referencing the provider (e.g., physician/clinician) associated with the encounter record, linking to prv_tbl.prv_id",
+        "description": "Foreign key referencing the provider (e.g., physician/clinician) associated with the encounter record, linking to prv_tbl.prv_id"
+      },
+      {
+        "target_column": "encounter_type_code",
+        "source_column": "enc_typ_cd",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "TRIM(UPPER(enc_typ_cd))",
+        "confidence": 0.75,
+        "rule_id": null,
+        "prompt_id": "prompt-8f345925-4ae4-4e19-a764-d91d374cf749",
+        "ai_reasoning": "The column name 'enc_typ_cd' combined with table 'enc_log' (encounter log) and sibling columns like pat_id, prv_id, bill_amt, enc_dt strongly suggests this is an encounter type code for healthcare visits. 'ER', 'OP', and 'IP' are very standard and widely recognized abbreviations for Emergency, Outpatient, and Inpatient encounter types in healthcare systems, giving high confidence for those three. However, 'TC' is ambiguous - it could stand for Telehealth Consult, Transitional Care, Trauma Center, or other terms depending on the source system's coding standard, and there is no lookup/reference table provided to confirm this. Because one of the four values has a genuinely ambiguous mapping, I'm setting confidence below the high-certainty threshold (0.75) to flag this column for human review, specifically to confirm the correct expansion of 'TC'.",
+        "null_handling": "No nulls observed (null rate 0.0); if a null occurs in future data, map to 'UNKNOWN' and flag for review rather than dropping the record.",
+        "edge_cases": [
+          "'TC' could plausibly mean 'Telehealth Consult', 'Transitional Care', or 'Trauma Center' - meaning inferred from healthcare context but not explicitly confirmed by a lookup table.",
+          "Only 4 distinct codes observed; any new/unseen code values in future loads would fall to ELSE 'UNKNOWN' and require mapping updates.",
+          "Even distribution (~6200-6325 each) suggests these are the only valid enumerated values, but no reference/lookup table was provided to confirm exact full-text labels."
+        ],
+        "human_reviewed": true,
+        "review_decision": "override",
+        "reviewed_at": "2026-08-09T18:24:08.588024+00:00",
+        "override_rationale": "Codes preserved rather than expanded to labels. 'TC' is genuinely ambiguous (Telehealth / Transitional Care / Trauma Center) with no lookup table to confirm, and ELSE 'UNKNOWN' would mask any new code silently. Column is named _code; expansion belongs in a lookup table.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Code representing the type/category of a patient encounter (visit) in a healthcare encounter log - e.g., Emergency Room, Outpatient, Telehealth/Telemedicine Consult, Inpatient",
+        "description": "Code representing the type/category of a patient encounter (visit) in a healthcare encounter log - e.g., Emergency Room, Outpatient, Telehealth/Telemedicine Consult, Inpatient"
+      },
+      {
+        "target_column": "encounter_datetime",
+        "source_column": "enc_dt",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": false,
+        "transformation": "CAST(enc_dt AS DATETIME) -- direct passthrough, no conversion needed since already in DATETIME format; standardize to ISO 8601 (YYYY-MM-DD HH:MM:SS) if target schema requires string representation",
+        "confidence": 0.9,
+        "rule_id": null,
+        "prompt_id": "prompt-9172369a-9996-4756-9078-b33da4beaf40",
+        "ai_reasoning": "The column name 'enc_dt' combined with its presence in the 'enc_log' (encounter log) table alongside enc_id, pat_id, prv_id, enc_typ_cd, bill_amt, pmt_st_cd, and notes_txt strongly suggests this is the timestamp of the encounter event. The DATETIME type and high cardinality (near row-count uniqueness) support this being a granular event timestamp rather than a coarse date bucket. Confidence is high but not maximal because there's no explicit documentation confirming whether this represents encounter start time, creation time, or logging time -- these could differ semantically, warranting human review if downstream logic depends on that distinction.",
+        "null_handling": "No nulls observed (null rate 0.0); if nulls appear in future data, leave as NULL rather than defaulting to a fabricated date, since encounter timestamp is a critical business fact.",
+        "edge_cases": [
+          "Timezone ambiguity: source values have no explicit timezone indicator; assume system/local timezone unless documented otherwise",
+          "High cardinality (24998) close to row count suggests near-unique timestamps, consistent with an event timestamp rather than a categorical or batch date",
+          "Column name 'enc_dt' suggests 'date' but values include full time component, so treat as full datetime, not date-only"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "service_date_phi"
+        ],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Timestamp indicating when the encounter (patient visit/interaction) recorded in enc_log occurred or was created/logged",
+        "description": "Timestamp indicating when the encounter (patient visit/interaction) recorded in enc_log occurred or was created/logged"
+      },
+      {
+        "target_column": "bill_amount",
+        "source_column": "bill_amt",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CAST(bill_amt AS DECIMAL(10,2)) -- direct pass-through, renaming column to bill_amount; no unit conversion needed",
+        "confidence": 0.85,
+        "rule_id": null,
+        "prompt_id": "prompt-518d3c04-2d2a-483b-b567-057841a139a1",
+        "ai_reasoning": "Column name 'bill_amt' combined with DECIMAL(10,2) type and context (table 'enc_log' with encounter, patient, provider, encounter type, date, and payment status columns) strongly suggests this represents the billed dollar amount for a healthcare encounter. Sample values are all positive and consistent with typical medical billing amounts. High cardinality (24771) is expected for continuous monetary values. Confidence is high but not maximal since no explicit currency unit or documentation confirms USD, and there's no direct corroborating column (e.g., a currency code) to fully validate.",
+        "null_handling": "No NULLs present (null_rate 0.0); if NULLs appear in future data, treat as unknown/unbilled amount and preserve as NULL rather than defaulting to 0, to avoid conflating 'no charge' with 'missing data'",
+        "edge_cases": [
+          "Negative values could indicate credits/refunds if present, though none observed in sample",
+          "Currency assumed to be USD; no currency code column present to confirm",
+          "Extremely high or zero values may need validation against enc_typ_cd for plausibility"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "The billed amount (monetary charge) associated with a specific encounter/visit record in the encounter log table",
+        "description": "The billed amount (monetary charge) associated with a specific encounter/visit record in the encounter log table"
+      },
+      {
+        "target_column": "payment_status_code",
+        "source_column": "pmt_st_cd",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "TRIM(UPPER(pmt_st_cd))",
+        "confidence": 0.55,
+        "rule_id": null,
+        "prompt_id": "prompt-517f25ef-6c7d-4790-84af-cd27b991d435",
+        "ai_reasoning": "The column name 'pmt_st_cd' strongly suggests 'payment status code', and the small cardinality (5 distinct single-character values) is consistent with an enumerated status field. However, without a data dictionary or lookup table, the exact semantic meaning of each code (P, U, W, R) is a guess based on common billing status conventions (Paid, Unpaid, Waived, Rejected/Refunded). The '?' value is especially ambiguous - it could be a null placeholder, an error code, or a valid but undocumented status. Given the meaningful volume of '?' values (486) and the inability to confirm exact code meanings from context, this mapping should be flagged for human review before being used in production migration logic.",
+        "null_handling": "No nulls present (null rate 0.0); if a null were encountered, map to 'Unknown' to be consistent with the '?' sentinel value.",
+        "edge_cases": [
+          "'?' value (486 occurrences) does not clearly map to a known status and may represent a data entry error, placeholder, or a distinct status not yet identified",
+          "Single-letter codes are assumed but not confirmed against a data dictionary - 'P' could mean 'Paid' or 'Pending', 'R' could mean 'Rejected', 'Refunded', or 'Reversed'",
+          "No FK or lookup table exists to validate code meanings"
+        ],
+        "human_reviewed": true,
+        "review_decision": "override",
+        "reviewed_at": "2026-08-09T18:24:31.856721+00:00",
+        "override_rationale": "Codes preserved. 'P' could be Paid or Pending \u2014 a material difference on billing data \u2014 and '?' (486 rows) would have been merged with the ELSE branch, losing the distinction between an explicit '?' and an unrecognised code.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Payment status code for an encounter (billing) record - likely indicates whether payment is Pending, Unpaid, Waived, Rejected/Refunded, etc.",
+        "description": "Payment status code for an encounter (billing) record - likely indicates whether payment is Pending, Unpaid, Waived, Rejected/Refunded, etc."
+      },
+      {
+        "target_column": "notes",
+        "source_column": "notes_txt",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "TRIM(notes_txt)",
+        "confidence": 0.55,
+        "rule_id": null,
+        "prompt_id": "prompt-736f6837-3695-442f-997d-ea979a078726",
+        "ai_reasoning": "The column name 'notes_txt' and TEXT type strongly suggest a free-text comments/notes field, which is a straightforward 1:1 mapping to a 'notes' column with no transformation needed beyond trimming whitespace. However, confidence is capped below 0.80 because the sample values appear to be synthetic/randomly generated placeholder sentences (common in test/demo datasets) rather than authentic clinical notes, making it unclear whether this reflects real-world semantic content or if the field's actual business purpose in production differs from what test data suggests. Human review is recommended to confirm the field's true content and whether any parsing/redaction logic is needed before migration.",
+        "null_handling": "Preserve NULLs as NULL (high null rate ~70% suggests notes are optional/free-form); do not substitute empty string or default text.",
+        "edge_cases": [
+          "Sample values look like randomly generated filler text (e.g., Faker-style lorem ipsum), not real clinical notes -- may indicate synthetic/test data rather than genuine free text.",
+          "High cardinality (7431) with mostly unique short sentences suggests no categorical or coded meaning.",
+          "No apparent PII/PHI patterns detected in samples, but real production data could contain sensitive info requiring redaction review.",
+          "Empty string vs NULL distinction not observable from samples; assume both should map to NULL if empty."
+        ],
+        "human_reviewed": true,
+        "review_decision": "override",
+        "reviewed_at": "2026-08-09T18:25:02.740234+00:00",
+        "override_rationale": "Original contained two expressions; comment-stripping kept the CAST and dropped the TRIM, so no trimming would have occurred.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.7028,
+        "inferred_meaning": "Free-text notes field associated with an encounter log record; appears to contain arbitrary/placeholder-like sentences rather than structured clinical or business content, likely used for annotation or comments about the encounter.",
+        "description": "Free-text notes field associated with an encounter log record; appears to contain arbitrary/placeholder-like sentences rather than structured clinical or business content, likely used for annotation or comments about the encounter."
+      }
+    ],
+    "patient_records": [
+      {
+        "target_column": "patient_id",
+        "source_column": "pat_id",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": true,
+        "transformation": "CAST(pat_id AS INTEGER) AS patient_id -- direct 1:1 passthrough, no value transformation needed",
+        "confidence": 0.97,
+        "rule_id": null,
+        "prompt_id": "prompt-4324004f-1b26-47d3-88ea-9bff5931746e",
+        "ai_reasoning": "The column name 'pat_id', its integer type, 0% null rate, primary key flag, and use as a foreign key target from enc_log.pat_id strongly indicate this is the unique patient identifier for the table. The naming convention (pat -> patient, id -> identifier) is unambiguous and standard, and sample values (sequential integers) are consistent with a surrogate key. High confidence is warranted given the clear structural evidence (PK constraint, FK reference, zero nulls).",
+        "null_handling": "Not applicable; null_rate is 0.0 and column is primary key, so NULLs should never occur. If a NULL is encountered, reject/flag the row as a data integrity violation rather than imputing a value.",
+        "edge_cases": [
+          "Values are sequential integers starting at 1, suggesting a surrogate key rather than a natural/business identifier; verify no reuse or gaps that could indicate soft-deleted records.",
+          "Ensure referential integrity is preserved when renaming, since enc_log.pat_id depends on this column as a foreign key.",
+          "Cardinality (12000) should equal row count for a true primary key; confirm no duplicates exist before migration."
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Unique identifier for a patient record; primary key of the patient_records table used to link patient demographic/administrative data to related tables (e.g., enc_log encounter logs).",
+        "description": "Unique identifier for a patient record; primary key of the patient_records table used to link patient demographic/administrative data to related tables (e.g., enc_log encounter logs)."
+      },
+      {
+        "target_column": "patient_status_code",
+        "source_column": "pat_st_cd",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "TRIM(UPPER(pat_st_cd)) -- normalize whitespace/case; e.g. ' D' -> 'D'; then map: A='Active', D='Discharged', I='Inactive', S='Suspended', X='Excluded/Unknown' (pending confirmation of exact code meanings)",
+        "confidence": 0.55,
+        "rule_id": null,
+        "prompt_id": "prompt-8068a6d5-188b-47b8-9ee4-b6a63e3750fe",
+        "ai_reasoning": "The column name 'pat_st_cd' strongly suggests 'patient status code', and the small cardinality (6 distinct values) supports a categorical status field. However, the actual semantic meaning of each single-letter code (A, D, I, S, X) is not documented or verifiable from the metadata alone -- these are common abbreviations (Active, Discharged, Inactive, Suspended) but could represent different statuses in this specific system (e.g., D could be 'Deceased' rather than 'Discharged', given presence of admit_dt/discharge_dt columns which might already capture discharge separately). The whitespace variant ' D' is clearly a data quality issue that should be normalized to 'D'. Given the ambiguity in exact code-to-label mapping and lack of a reference/lookup table, confidence is kept below 0.80 to flag for human review of the exact status code definitions.",
+        "null_handling": "No nulls present (null rate 0.0); if future nulls occur, map to 'Unknown' or leave NULL pending business rule confirmation.",
+        "edge_cases": [
+          "Leading whitespace in ' D' (232 occurrences) appears to be a data entry/formatting inconsistency that should be trimmed and treated as 'D'.",
+          "Code 'X' (130 occurrences) has no clear standard meaning (e.g., could be Excluded, Expired, Unknown) and needs human/business confirmation.",
+          "Single-letter codes A/D/I/S are plausible common status abbreviations but exact meaning depends on source system documentation, not confirmed here."
+        ],
+        "human_reviewed": true,
+        "review_decision": "approve",
+        "reviewed_at": "2026-08-09T18:18:59.497533+00:00",
+        "override_rationale": "Codes preserved raw, not expanded to labels. 'X' (130 rows) has no confirmed meaning and A/D/I/S are unverified, so expanding would bake in a guess. TRIM/UPPER normalises the ' D' whitespace variant only.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Patient status code indicating current state (e.g., Active, Discharged, Inactive, Suspended, Excluded/Unknown)",
+        "description": "Patient status code indicating current state (e.g., Active, Discharged, Inactive, Suspended, Excluded/Unknown)"
+      },
+      {
+        "target_column": "first_name",
+        "source_column": "fst_nm",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "TRIM(fst_nm) -- copy value directly, trimming leading/trailing whitespace; optionally apply proper-case normalization if source casing is inconsistent",
+        "confidence": 0.97,
+        "rule_id": null,
+        "prompt_id": "prompt-a24d1546-e1dd-4d28-b1b7-84f16feea9a1",
+        "ai_reasoning": "Column name 'fst_nm' is a clear abbreviation for 'first name', consistent with sibling column 'lst_nm' (last name) in the same patient_records table. Sample values are all common human first names, cardinality (673) is reasonable for a first-name field in a patient dataset, and there are no NULLs. This is a straightforward 1:1 direct mapping with high confidence; only minor formatting normalization (trimming/casing) is suggested as a transformation.",
+        "null_handling": "No NULLs observed (null rate 0.0); if NULL/empty occurs in future data, map to NULL in target (do not default to empty string) and flag record for data quality review.",
+        "edge_cases": [
+          "Hyphenated or multi-part first names (e.g., 'Mary-Jane') should be preserved as-is",
+          "Names with special characters or diacritics (e.g., accented letters) should be preserved, not stripped",
+          "Possible leading/trailing whitespace requiring trimming",
+          "Single-letter or initial-only entries could indicate truncated data",
+          "Titles or suffixes accidentally included in the field (rare) would need manual review"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "person_name"
+        ],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Patient's first (given) name",
+        "description": "Patient's first (given) name"
+      },
+      {
+        "target_column": "last_name",
+        "source_column": "lst_nm",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "TRIM(lst_nm) -- direct copy, standardize whitespace and optionally proper-case: INITCAP(TRIM(lst_nm))",
+        "confidence": 0.0,
+        "rule_id": null,
+        "prompt_id": "prompt-a5b91c29-ec04-495e-ac4e-c4cef7f91cd1",
+        "ai_reasoning": "Column name 'lst_nm' is a clear abbreviation for 'last name', consistent with the paired 'fst_nm' (first name) column in the same table. Sample values are all common surnames, cardinality (989) is reasonable for a patient population, and there's no ambiguity in semantic meaning. High confidence mapping to standard 'last_name' target column.",
+        "null_handling": "No nulls observed (null_rate 0.0); if NULL/empty appears in future loads, map to NULL and flag record for review rather than defaulting to empty string.",
+        "edge_cases": [
+          "[\"Multi-part surnames (e.g., 'Van Der Berg') should be preserved as-is, not split\", \"Hyphenated or apostrophe-containing names (e.g., 'O'Brien-Smith') must retain punctuation\", \"Possible leading/trailing whitespace or inconsistent casing needing normalization\", \"Names with suffixes accidentally included (e.g., 'Miller Jr') would need separate handling\"]\n<parameter name=\"confidence\">0.97"
+        ],
+        "human_reviewed": true,
+        "review_decision": "approve",
+        "reviewed_at": "2026-08-09T18:19:42.205918+00:00",
+        "override_rationale": "Confidence displayed as 0.00 is a structured-output parse bug \u2014 model's actual confidence was 0.97, visible leaked into edge_cases. Approving on merit. INITCAP in the comment is not applied and must not be: proper-casing destroys O'BRIEN and van der Berg.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "person_name"
+        ],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Patient's last name (surname)",
+        "description": "Patient's last name (surname)"
+      },
+      {
+        "target_column": "date_of_birth",
+        "source_column": "dob",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CAST(dob AS DATE) -- values already in ISO 8601 (YYYY-MM-DD) format, direct mapping to target DATE column",
+        "confidence": 0.97,
+        "rule_id": null,
+        "prompt_id": "prompt-b02600c0-c9fb-45c0-81a4-2c142468c23f",
+        "ai_reasoning": "Column name 'dob' is a standard, unambiguous abbreviation for 'date of birth', consistent with the DATE type, patient-centric table context (patient_records with fst_nm, lst_nm, sex_cd), and sample values showing valid, well-formed calendar dates spanning plausible human birth years (1931-2001). High cardinality (10180) matches expectation of mostly unique birth dates across a patient population. No transformation beyond type casting is needed since format is already ISO standard.",
+        "null_handling": "No nulls present (null_rate 0.0); if a null occurs in future loads, preserve as NULL since DOB may legitimately be unknown/unrecorded rather than imputed.",
+        "edge_cases": [
+          "Very old dates (e.g., 1931) should be validated against reasonable age bounds to catch data entry errors",
+          "Future or implausible dates (e.g., dob after admit_dt) should be flagged during validation",
+          "Ensure date format consistency (no two-digit years or ambiguous MM/DD vs DD/MM formats) across full dataset, not just sample"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "date_of_birth"
+        ],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Patient's date of birth",
+        "description": "Patient's date of birth"
+      },
+      {
+        "target_column": "sex_code",
+        "source_column": "sex_cd",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CASE sex_cd WHEN 'M' THEN 'MALE' WHEN 'F' THEN 'FEMALE' WHEN 'U' THEN 'UNKNOWN' ELSE NULL END",
+        "confidence": 0.9,
+        "rule_id": null,
+        "prompt_id": "prompt-4dd93300-a512-4c8c-9276-72f4bb60c38e",
+        "ai_reasoning": "The column name 'sex_cd' and CHAR(1) type strongly suggest a coded sex/gender field. Sample values M/F/U are standard conventions (Male, Female, Unknown) commonly seen in healthcare/patient record systems (e.g., HL7 standards use similar codes). The distribution is balanced and consistent with expected sex demographics, supporting high confidence in the M/F/U mapping. Confidence is not higher due to lack of full value distribution verification (unseen edge codes) and ambiguity in how NULL should be treated relative to the existing 'U' code.",
+        "null_handling": "Map NULL to 'UNKNOWN' or preserve as NULL depending on target schema requirements; given a 1.84% null rate, treat missing values as 'UNKNOWN' to align with existing 'U' code semantics unless downstream system requires strict NULL preservation for unreported data.",
+        "edge_cases": [
+          "Values outside {M, F, U} not observed in sample but could exist in production (e.g., lowercase 'm'/'f', 'X', 'O', or blank string)",
+          "NULL vs 'U' may carry different semantic meaning (explicitly unknown vs not recorded) and may need separate handling",
+          "Case sensitivity of source values not fully verified across full dataset"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0184,
+        "inferred_meaning": "Patient's sex/gender code, using single-character codes for Male, Female, or Unknown/Unspecified",
+        "description": "Patient's sex/gender code, using single-character codes for Male, Female, or Unknown/Unspecified"
+      },
+      {
+        "target_column": "admission_datetime",
+        "source_column": "admit_dt",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CAST(admit_dt AS DATETIME) -- direct copy, ensure ISO 8601 format 'YYYY-MM-DD HH:MI:SS'",
+        "confidence": 0.9,
+        "rule_id": null,
+        "prompt_id": "prompt-3a89d7f5-cc0e-44d0-ae4a-7f9535684b78",
+        "ai_reasoning": "Column name 'admit_dt' clearly corresponds to an admission datetime, consistent with presence of a paired 'discharge_dt' column in the same table. Data type and sample values (full datetime strings) support a straightforward datetime mapping. Confidence is high but not maximal due to unexplained future-dated records and lack of timezone metadata.",
+        "null_handling": "No nulls observed (null_rate=0.0); if null occurs in future, leave as NULL since admission date is a required event field",
+        "edge_cases": [
+          "Future-dated values present (e.g., 2025-12-22) which may indicate test/placeholder data or scheduled admissions - flag for review",
+          "Ensure admit_dt <= discharge_dt for logical consistency; violations should be flagged",
+          "Timezone not specified in source; assume system local time unless otherwise documented"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "service_date_phi"
+        ],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Timestamp marking when a patient was admitted to a facility/care episode",
+        "description": "Timestamp marking when a patient was admitted to a facility/care episode"
+      },
+      {
+        "target_column": "discharge_datetime",
+        "source_column": "discharge_dt",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CAST(discharge_dt AS DATETIME) -- direct pass-through, ensure ISO 8601 format (YYYY-MM-DD HH:MM:SS); no timezone conversion applied since source has no explicit TZ info",
+        "confidence": 0.9,
+        "rule_id": null,
+        "prompt_id": "prompt-525afece-25d5-4bd2-8b43-b03c9f12eb85",
+        "ai_reasoning": "Column name 'discharge_dt' combined with presence of 'admit_dt' in the same table strongly indicates a patient encounter/visit record with admission and discharge timestamps. The DATETIME type and realistic date ranges (2021-2025) support this. High cardinality (10214) with no PK flag is consistent with per-encounter granularity. The moderate null rate is well-explained by ongoing/active admissions rather than being ambiguous, hence confidence is high but not maximal since we cannot fully confirm business logic (e.g., whether NULL could also indicate a data entry gap) without further validation against pat_st_cd (patient status code).",
+        "null_handling": "Preserve NULLs as-is; NULL likely indicates patient has not yet been discharged (still admitted) rather than missing data. Do not default to a placeholder date.",
+        "edge_cases": [
+          "NULL values (14.88% of records) likely represent currently admitted patients rather than data errors",
+          "Should validate discharge_dt >= admit_dt; any records where discharge precedes admit indicate data quality issues",
+          "No timezone information present in source; assume consistent system timezone unless otherwise documented",
+          "Future-dated values (e.g., 2025-01-12) suggest data includes records up to/near current date -- verify against system's 'as of' date"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "service_date_phi"
+        ],
+        "source_null_rate": 0.1488,
+        "inferred_meaning": "Timestamp indicating when a patient was discharged from care/facility, paired with admit_dt to define the encounter duration",
+        "description": "Timestamp indicating when a patient was discharged from care/facility, paired with admit_dt to define the encounter duration"
+      },
+      {
+        "target_column": "created_ts",
+        "source_column": "created_ts",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CAST(created_ts AS DATETIME)",
+        "confidence": 0.6,
+        "rule_id": null,
+        "prompt_id": "prompt-1b9d745a-8479-4187-a754-ff0c7b8e9e26",
+        "ai_reasoning": "The column name and type (TIMESTAMP) clearly indicate a creation timestamp, and the pattern matches Python's datetime.datetime(...) repr, just missing the leading 'd'. However, confidence is capped below 0.8 because: (1) the malformed/truncated string format is unusual and its root cause (encoding bug vs. intentional truncation) is unclear, requiring human verification before writing a robust parser; (2) the very low cardinality (only 5 distinct values across thousands of rows, all within a 4-second window on a single date) is suspicious for a 'created_ts' field and may indicate this is test/synthetic data or a batch timestamp rather than a true per-row creation time, which could affect downstream semantic assumptions; (3) it's unclear whether microseconds or timezone info were present in the original datetime object and simply truncated in this string representation, which could cause data loss if not handled carefully. Human review recommended to confirm the parsing regex and to validate the source generation process before finalizing this mapping.",
+        "null_handling": "No nulls observed (null_rate 0.0); if a null or malformed string appears, set target to NULL and flag row for review rather than fabricating a timestamp.",
+        "edge_cases": [
+          "Source strings are missing the leading 'd' in 'datetime' - likely a truncation artifact from string slicing (str(dt)[1:]) or CSV export issue; need to confirm this is consistent across the full dataset.",
+          "String appears truncated - missing closing parenthesis, suggesting the raw repr may have been cut off (possibly losing microseconds field).",
+          "All sampled values share the same date (2026-08-01) and hour, differing only in seconds - very low cardinality (5) suggests this may be batch-load timestamps rather than true per-record creation times.",
+          "Need to verify no timezone component was dropped during string conversion."
+        ],
+        "human_reviewed": true,
+        "review_decision": "override",
+        "reviewed_at": "2026-08-09T18:52:45.334996+00:00",
+        "override_rationale": "created_ts is a genuine MySQL TIMESTAMP column, not a malformed string. The 'datetime.datetime(...)' pattern in the schema profile is a Python repr artifact from schema_profiler serialising datetime objects, not the stored value \u2014 confirmed by querying the source directly. No parsing needed.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Timestamp indicating when the patient record was created, stored as a stringified Python datetime.datetime object (missing leading 'd' - 'atetime' instead of 'datetime'), with format datetime.datetime(year, month, day, hour, minute, second)",
+        "description": "Timestamp indicating when the patient record was created, stored as a stringified Python datetime.datetime object (missing leading 'd' - 'atetime' instead of 'datetime'), with format datetime.datetime(year, month, day, hour, minute, second)"
+      },
+      {
+        "target_column": "updated_at",
+        "source_column": "updated_ts",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CAST(updated_ts AS TIMESTAMP) -- direct passthrough, rename column; no value transformation needed",
+        "confidence": 0.55,
+        "rule_id": null,
+        "prompt_id": "prompt-989e7c64-b2d1-4b3a-8df1-a35c29260f41",
+        "ai_reasoning": "The column name 'updated_ts' strongly suggests a last-modified timestamp, paralleling 'created_ts' in the same table, which is a very common audit-column pattern. However, with a null_rate of 1.0 and cardinality of 0, there are zero actual observed values to validate the semantic meaning, format, or usage pattern (e.g., whether it's ever populated, what timezone it uses, or whether it triggers on updates). Because the mapping is based purely on naming convention and no empirical data supports it, confidence is kept below 0.80 to flag this for human review -- specifically to confirm whether this column is actively used by the source system or is vestigial/unpopulated.",
+        "null_handling": "Column is 100% NULL in observed data (null_rate=1.0, cardinality=0). Preserve NULLs as-is in target column; do not default to created_ts or current timestamp unless business rules confirm that this field should be backfilled. Flag for review whether NULLs should be populated with created_ts value on migration.",
+        "edge_cases": [
+          "Entire column is NULL in sample data, so no real values exist to confirm formatting/timezone",
+          "Cannot verify if timestamp is UTC or local time due to lack of sample data",
+          "May never be populated by source system (possibly a placeholder/unused column) - needs confirmation from source system owner",
+          "If system always defaults to created_ts on insert and never updates it, this column may be effectively dead"
+        ],
+        "human_reviewed": true,
+        "review_decision": "approve",
+        "reviewed_at": "2026-08-09T18:19:21.765675+00:00",
+        "override_rationale": "Column is 100% NULL in source. Migrating as-is rather than defaulting to created_ts. Note: this rules it out as a watermark, so patient_records will always full-load.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 1.0,
+        "inferred_meaning": "Timestamp indicating when the patient record was last updated/modified",
+        "description": "Timestamp indicating when the patient record was last updated/modified"
+      }
+    ],
+    "prv_tbl": [
+      {
+        "target_column": "provider_id",
+        "source_column": "prv_id",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": true,
+        "transformation": "CAST(prv_id AS INTEGER) AS provider_id -- direct 1:1 passthrough, no value transformation needed",
+        "confidence": 0.95,
+        "rule_id": null,
+        "prompt_id": "prompt-05bc4c6f-5b3e-45e6-b202-f62a6220bd7b",
+        "ai_reasoning": "Column name 'prv_id' clearly abbreviates 'provider_id', it's flagged as the primary key of prv_tbl (a provider table, inferred from prv_nm, prv_typ_cd, npi_num, dept_id sibling columns which are classic provider attributes: name, type code, department, NPI number), and it's referenced by enc_log.prv_id as a foreign key, consistent with encounters linking to providers. Values are simple sequential-looking integers with no encoding pattern requiring transformation, so a direct passthrough rename is appropriate. High confidence due to strong naming convention match, PK status, and consistent related-table semantics (NPI number confirms healthcare provider context).",
+        "null_handling": "No nulls observed (null_rate=0.0) and column is primary key, so nulls should not occur; if encountered, reject/flag row as data integrity violation rather than defaulting.",
+        "edge_cases": [
+          "Cardinality (40) is low relative to typical provider tables - verify this isn't a subset/sample extract rather than full population",
+          "Ensure enc_log.prv_id FK values all resolve to existing prv_id values after migration (referential integrity check)",
+          "Confirm prv_id is not reused/recycled for different providers over time (surrogate key stability)"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Primary key identifier for a provider record in the provider table (prv_tbl), uniquely identifying each healthcare provider entity. Referenced as a foreign key from enc_log (encounter log) to link encounters to the provider who performed/is associated with them.",
+        "description": "Primary key identifier for a provider record in the provider table (prv_tbl), uniquely identifying each healthcare provider entity. Referenced as a foreign key from enc_log (encounter log) to link encounters to the provider who performed/is associated with them."
+      },
+      {
+        "target_column": "provider_name",
+        "source_column": "prv_nm",
+        "source_data_type": null,
+        "nullable": false,
+        "primary_key": false,
+        "transformation": "TRIM(prv_nm) -- copy as-is to provider_name; optionally split into title/first_name/last_name via regex: '^(Dr\\.|Mr\\.|Mrs\\.|Ms\\.)?\\s*([A-Za-z]+)\\s+([A-Za-z]+)$' capturing title, first_name, last_name",
+        "confidence": 0.0,
+        "rule_id": null,
+        "prompt_id": "prompt-6ce43495-ec06-4f6f-88fe-9bb71541c1f0",
+        "ai_reasoning": "The column consistently contains 'Dr. FirstName LastName' formatted strings, strongly indicating it represents a provider's full display name including title. Direct mapping to a 'provider_name' field is straightforward. Confidence is not higher because the low cardinality (40 distinct values) relative to typical provider tables raises a question about whether this is sample/test data with repeated names, and because splitting into structured name parts (first/last) would require additional pattern validation not fully verifiable from the given samples alone.",
+        "null_handling": "No NULLs observed (null_rate 0.0); if NULL occurs, set to NULL and flag record for review since provider name is expected to be required.",
+        "edge_cases": [
+          "[\"Names with middle initials or suffixes (e.g., Jr., III) not seen in sample but may exist\", \"Titles other than 'Dr.' (e.g., 'NP', 'PA') not represented in sample\", \"Hyphenated or multi-word last names (e.g., 'Van Der Berg') could break simple split logic\", \"Cardinality of 40 suggests possible duplicate names across different prv_id values, which may indicate test/sample data rather than production diversity\"]\n<parameter name=\"confidence\">0.85"
+        ],
+        "human_reviewed": true,
+        "review_decision": "approve",
+        "reviewed_at": "2026-08-09T18:20:09.223861+00:00",
+        "override_rationale": "Same 0.00 parse bug; actual confidence 0.85. Name kept whole rather than split into title/first/last \u2014 the regex in the comment breaks on multi-word surnames.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "person_name"
+        ],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Full name (with title prefix) of a healthcare provider/physician",
+        "description": "Full name (with title prefix) of a healthcare provider/physician"
+      },
+      {
+        "target_column": "provider_type_code",
+        "source_column": "prv_typ_cd",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CASE prv_typ_cd WHEN 'MD' THEN 'MD' WHEN 'DO' THEN 'DO' WHEN 'NP' THEN 'NP' WHEN 'PA' THEN 'PA' ELSE prv_typ_cd END -- pass-through of existing 2-letter codes into standardized target column name; optionally join to a reference/lookup table for full description (e.g., 'MD' -> 'Medical Doctor') if target schema requires descriptive text",
+        "confidence": 0.92,
+        "rule_id": null,
+        "prompt_id": "prompt-41ab4057-1cb3-486a-b688-2bab1d2b396c",
+        "ai_reasoning": "The column name 'prv_typ_cd' clearly abbreviates 'provider type code', and the sample/full distribution values (MD, DO, NP, PA) are well-known, standard healthcare provider credential abbreviations. This is a low-cardinality categorical code column with no NULLs, making a direct pass-through mapping straightforward and reliable. Confidence is high but not maximal since we don't have an explicit reference/lookup table confirming these exact code definitions in this specific system, and there's a small chance the target schema expects full descriptive names rather than codes.",
+        "null_handling": "No NULLs observed (null rate 0.0); if NULLs appear in future data, map to 'UNK' or NULL depending on target schema conventions, and flag for review.",
+        "edge_cases": [
+          "Values are already valid, standard provider type abbreviations (MD, DO, NP, PA) with no unexpected codes in the observed distribution",
+          "If future data introduces other codes (e.g., 'RN', 'CNM', 'DPM'), transformation rule should be extended",
+          "Case sensitivity: assume all values are uppercase; lowercase or mixed-case variants should be normalized via UPPER() before mapping"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "Provider type/credential code indicating the professional classification of a healthcare provider (Medical Doctor, Doctor of Osteopathy, Nurse Practitioner, Physician Assistant)",
+        "description": "Provider type/credential code indicating the professional classification of a healthcare provider (Medical Doctor, Doctor of Osteopathy, Nurse Practitioner, Physician Assistant)"
+      },
+      {
+        "target_column": "dept_id",
+        "source_column": "dept_id",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CAST(dept_id AS INTEGER) -- direct passthrough mapping to department_id, preserving referential integrity with dept_master.dept_id",
+        "confidence": 0.55,
+        "rule_id": null,
+        "prompt_id": "prompt-986a9671-95f0-4c17-825a-dfdec5c0a811",
+        "ai_reasoning": "While the FK relationship to dept_master.dept_id and column naming make the semantic meaning (department identifier) fairly clear, the sample values and full distribution show only empty strings ('') rather than actual integer values, which is inconsistent with the declared INTEGER type. This discrepancy prevents confident construction of a transformation rule, since we cannot verify whether empty strings should map to NULL, 0, or if there's an underlying encoding issue in the source extract. Flagging for human review to confirm actual raw data values before finalizing the transformation logic.",
+        "null_handling": "Preserve NULLs as-is (set target to NULL) since null rate is 20% and may indicate providers not yet assigned to a department; do not default to 0 or fabricate a department reference.",
+        "edge_cases": [
+          "Sample values show empty string '' rather than true NULL or numeric values, which conflicts with declared INTEGER type - may indicate data quality/export issue",
+          "Cardinality of 7 suggests very few distinct departments, should be validated against dept_master row count",
+          "Empty string samples need investigation to confirm whether they represent NULL, 0, or an actual unmapped placeholder value"
+        ],
+        "human_reviewed": true,
+        "review_decision": "override",
+        "reviewed_at": "2026-08-09T18:22:32.136799+00:00",
+        "override_rationale": "Renamed to match dept_master's PK, which maps to dept_id. FK detection in generate_dbt_models.py matches on exact column name, so department_id would silently drop the prv_tbl \u2192 dept_master relationship test.",
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [],
+        "source_null_rate": 0.2,
+        "inferred_meaning": "Foreign key reference linking a provider record (prv_tbl) to its associated department in dept_master",
+        "description": "Foreign key reference linking a provider record (prv_tbl) to its associated department in dept_master"
+      },
+      {
+        "target_column": "npi_number",
+        "source_column": "npi_num",
+        "source_data_type": null,
+        "nullable": true,
+        "primary_key": false,
+        "transformation": "CAST(TRIM(npi_num) AS VARCHAR(10)) -- validate that value is exactly 10 digits (regex '^\\d{10}$'); no case or format conversion needed, just rename column",
+        "confidence": 0.9,
+        "rule_id": null,
+        "prompt_id": "prompt-d3d430c5-08ac-4ce5-8198-095a434133a7",
+        "ai_reasoning": "The column name 'npi_num' strongly suggests National Provider Identifier, a well-known 10-digit healthcare industry standard identifier. All sample values are exactly 10 numeric digits, consistent with valid NPI format. The table context (prv_tbl with provider name, type code, department id) further supports this being a healthcare provider table where NPI is a standard field. Confidence is high but not perfect since we cannot verify checksum validity (NPIs have a Luhn-based check digit) without additional validation logic.",
+        "null_handling": "No nulls observed (null_rate 0.0); if a null were encountered, map to NULL and flag record for review since NPI is expected to be mandatory for provider identification.",
+        "edge_cases": [
+          "Values that are not exactly 10 digits (e.g., leading zeros stripped, alphanumeric)",
+          "Placeholder/test NPIs such as '0000000000' or '9999999999' should be flagged",
+          "Duplicate NPIs across different prv_id records may indicate data entry errors"
+        ],
+        "human_reviewed": false,
+        "review_decision": null,
+        "reviewed_at": null,
+        "override_rationale": null,
+        "reviewer": null,
+        "original_target_column": null,
+        "pii_categories": [
+          "phone",
+          "provider_identifier"
+        ],
+        "source_null_rate": 0.0,
+        "inferred_meaning": "National Provider Identifier (NPI) - a unique 10-digit identification number issued to healthcare providers in the US, used here to identify records in the provider table (prv_tbl).",
+        "description": "National Provider Identifier (NPI) - a unique 10-digit identification number issued to healthcare providers in the US, used here to identify records in the provider table (prv_tbl)."
+      }
+    ]
+  },
+  "validation": {
+    "dept_master": {
+      "table": "dept_master",
+      "source_row_count": 8,
+      "target_row_count": 8,
+      "rows_reported_migrated": 8,
+      "expected_row_count": 8,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "dept_id",
+          "target_column": "dept_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "": 1
+          },
+          "target_value_counts": {
+            "1": 1,
+            "2": 1,
+            "3": 1,
+            "4": 1,
+            "5": 1,
+            "6": 1,
+            "7": 1,
+            "8": 1
+          }
+        },
+        {
+          "source_column": "dept_nm",
+          "target_column": "department_name",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "Rodriguez, Figueroa and Sanchez Dept": 1,
+            "Mcclain, Miller and Henderson Dept": 1,
+            "Johnson, Gonzalez and Santos Dept": 1,
+            "Pacheco-Smith Dept": 1,
+            "Moore-Bernard Dept": 1,
+            "Howard LLC Dept": 1,
+            "Martinez, Nielsen and Miller Dept": 1,
+            "Lee, Jones and Stanley Dept": 1
+          },
+          "target_value_counts": {
+            "Rodriguez, Figueroa and Sanchez Dept": 1,
+            "Mcclain, Miller and Henderson Dept": 1,
+            "Johnson, Gonzalez and Santos Dept": 1,
+            "Pacheco-Smith Dept": 1,
+            "Moore-Bernard Dept": 1,
+            "Howard LLC Dept": 1,
+            "Martinez, Nielsen and Miller Dept": 1,
+            "Lee, Jones and Stanley Dept": 1
+          }
+        },
+        {
+          "source_column": "dept_loc",
+          "target_column": "dept_location",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "Lake Curtis": 1,
+            "North Jefferyhaven": 1,
+            "Robinsonshire": 1,
+            "Lake Roberto": 1,
+            "Curtisfurt": 1,
+            "Lindsaymouth": 1,
+            "Mariastad": 1,
+            "Traciebury": 1
+          },
+          "target_value_counts": {
+            "Lake Curtis": 1,
+            "North Jefferyhaven": 1,
+            "Robinsonshire": 1,
+            "Lake Roberto": 1,
+            "Curtisfurt": 1,
+            "Lindsaymouth": 1,
+            "Mariastad": 1,
+            "Traciebury": 1
+          }
+        },
+        {
+          "source_column": "active_flg",
+          "target_column": "is_active",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "Y": 8
+          },
+          "target_value_counts": {
+            "1": 8
+          }
+        }
+      ],
+      "hard_failures": []
+    },
+    "patient_records": {
+      "table": "patient_records",
+      "source_row_count": 12000,
+      "target_row_count": 12000,
+      "rows_reported_migrated": 12000,
+      "expected_row_count": 12000,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "pat_id",
+          "target_column": "patient_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "pat_st_cd",
+          "target_column": "patient_status_code",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "A": 4959,
+            "D": 3661,
+            "I": 1784,
+            "S": 1234,
+            " D": 232,
+            "X": 130
+          },
+          "target_value_counts": {
+            "A": 4959,
+            "D": 3893,
+            "I": 1784,
+            "S": 1234,
+            "X": 130
+          }
+        },
+        {
+          "source_column": "fst_nm",
+          "target_column": "first_name",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "lst_nm",
+          "target_column": "last_name",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "dob",
+          "target_column": "date_of_birth",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "sex_cd",
+          "target_column": "sex_code",
+          "source_null_rate": 0.0184,
+          "target_null_rate": 0.0184,
+          "source_value_counts": {
+            "M": 5728,
+            "F": 5558,
+            "U": 493
+          },
+          "target_value_counts": {
+            "MALE": 5728,
+            "FEMALE": 5558,
+            "UNKNOWN": 493,
+            "null": 221
+          }
+        },
+        {
+          "source_column": "admit_dt",
+          "target_column": "admission_datetime",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "discharge_dt",
+          "target_column": "discharge_datetime",
+          "source_null_rate": 0.1488,
+          "target_null_rate": 0.1488
+        },
+        {
+          "source_column": "created_ts",
+          "target_column": "created_ts",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "atetime.datetime(2026, 8, 1, 14, 23, 14": 3273,
+            "atetime.datetime(2026, 8, 1, 14, 23, 16": 3261,
+            "atetime.datetime(2026, 8, 1, 14, 23, 15": 3144,
+            "atetime.datetime(2026, 8, 1, 14, 23, 13": 1583,
+            "atetime.datetime(2026, 8, 1, 14, 23, 17": 739
+          },
+          "target_value_counts": {
+            "1785594194000000000": 3273,
+            "1785594196000000000": 3261,
+            "1785594195000000000": 3144,
+            "1785594193000000000": 1583,
+            "1785594197000000000": 739
+          }
+        },
+        {
+          "source_column": "updated_ts",
+          "target_column": "updated_at",
+          "source_null_rate": 1.0,
+          "target_null_rate": 1.0
+        }
+      ],
+      "hard_failures": []
+    },
+    "prv_tbl": {
+      "table": "prv_tbl",
+      "source_row_count": 40,
+      "target_row_count": 40,
+      "rows_reported_migrated": 40,
+      "expected_row_count": 40,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "prv_id",
+          "target_column": "provider_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "prv_nm",
+          "target_column": "provider_name",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "prv_typ_cd",
+          "target_column": "provider_type_code",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "MD": 13,
+            "DO": 10,
+            "NP": 9,
+            "PA": 8
+          },
+          "target_value_counts": {
+            "MD": 13,
+            "DO": 10,
+            "NP": 9,
+            "PA": 8
+          }
+        },
+        {
+          "source_column": "dept_id",
+          "target_column": "dept_id",
+          "source_null_rate": 0.2,
+          "target_null_rate": 0.2,
+          "source_value_counts": {
+            "": 2
+          },
+          "target_value_counts": {
+            "null": 8,
+            "6": 8,
+            "4": 6,
+            "2": 6,
+            "3": 4,
+            "1": 3,
+            "7": 3,
+            "5": 2
+          }
+        },
+        {
+          "source_column": "npi_num",
+          "target_column": "npi_number",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        }
+      ],
+      "hard_failures": []
+    },
+    "enc_log": {
+      "table": "enc_log",
+      "source_row_count": 25000,
+      "target_row_count": 25000,
+      "rows_reported_migrated": 25000,
+      "expected_row_count": 25000,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "enc_id",
+          "target_column": "encounter_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "pat_id",
+          "target_column": "patient_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "prv_id",
+          "target_column": "provider_id",
+          "source_null_rate": 0.1001,
+          "target_null_rate": 0.1001
+        },
+        {
+          "source_column": "enc_typ_cd",
+          "target_column": "encounter_type_code",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "ER": 6325,
+            "OP": 6252,
+            "TC": 6215,
+            "IP": 6208
+          },
+          "target_value_counts": {
+            "ER": 6325,
+            "OP": 6252,
+            "TC": 6215,
+            "IP": 6208
+          }
+        },
+        {
+          "source_column": "enc_dt",
+          "target_column": "encounter_datetime",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "bill_amt",
+          "target_column": "bill_amount",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "pmt_st_cd",
+          "target_column": "payment_status_code",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "P": 12451,
+            "U": 7499,
+            "W": 3058,
+            "R": 1506,
+            "?": 486
+          },
+          "target_value_counts": {
+            "P": 12451,
+            "U": 7499,
+            "W": 3058,
+            "R": 1506,
+            "?": 486
+          }
+        },
+        {
+          "source_column": "notes_txt",
+          "target_column": "notes",
+          "source_null_rate": 0.7028,
+          "target_null_rate": 0.7028
+        }
+      ],
+      "hard_failures": []
+    },
+    "dx_codes": {
+      "table": "dx_codes",
+      "source_row_count": 15080,
+      "target_row_count": 15080,
+      "rows_reported_migrated": 15080,
+      "expected_row_count": 15080,
+      "row_count_matches_expected": true,
+      "load_mode": "full",
+      "column_comparisons": [
+        {
+          "source_column": "dx_id",
+          "target_column": "dx_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "enc_id",
+          "target_column": "encounter_id",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0
+        },
+        {
+          "source_column": "dx_cd",
+          "target_column": "diagnosis_code",
+          "source_null_rate": 0.1016,
+          "target_null_rate": 0.1016,
+          "source_value_counts": {
+            "N39.0": 1582,
+            "R51": 1579,
+            "E11.9": 1542,
+            "J45.909": 1525,
+            "Z00.00": 1506,
+            "TBD": 1490,
+            "I10": 1457,
+            "M54.5": 1438,
+            "K21.9": 1429
+          },
+          "target_value_counts": {
+            "N39.0": 1582,
+            "R51": 1579,
+            "E11.9": 1542,
+            "null": 1532,
+            "J45.909": 1525,
+            "Z00.00": 1506,
+            "TBD": 1490,
+            "I10": 1457,
+            "M54.5": 1438,
+            "K21.9": 1429
+          }
+        },
+        {
+          "source_column": "dx_desc",
+          "target_column": "dx_description",
+          "source_null_rate": 0.6029,
+          "target_null_rate": 0.6029
+        },
+        {
+          "source_column": "primary_flg",
+          "target_column": "is_primary_diagnosis",
+          "source_null_rate": 0.0,
+          "target_null_rate": 0.0,
+          "source_value_counts": {
+            "N": 7639,
+            "Y": 7441
+          },
+          "target_value_counts": {
+            "0": 7639,
+            "1": 7441
+          }
+        }
+      ],
+      "hard_failures": []
+    }
+  }
+}

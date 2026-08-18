@@ -1,0 +1,40 @@
+# ── Step 1: source DB + seeding ──
+SQLAlchemy>=2.0
+PyMySQL>=1.1
+Faker>=24.0
+python-dotenv>=1.0
+
+# ── Step 3: ai_mapper agent ──
+langchain>=0.3
+langchain-anthropic>=0.3
+pydantic>=2.0
+
+# ── Step 4: human_review_gate (visual UI, bonus) ──
+Flask>=3.0
+
+# ── Step 6: LangGraph orchestrator ──
+langgraph>=0.2
+
+# ── Step 7: migration target (Snowflake) ──
+# The [pandas] extra is REQUIRED, not optional: it pulls in pyarrow, which
+# load_rows() needs for write_pandas() and read_table() needs for
+# fetch_pandas_all(). Without it the loader falls back to row-by-row INSERT
+# (minutes rather than seconds on 25k rows) and the validator cannot read the
+# target back at all.
+snowflake-connector-python[pandas]
+
+# ── Step 8: validator (Great Expectations + dbt) ──
+great-expectations>=1.0
+# Imported directly by validator.py's read_table(). Great Expectations pulls it
+# in transitively, but listing it here means a GE version change cannot
+# silently remove it.
+pandas>=2.0
+
+# dbt is the second, independent validation layer.
+dbt-snowflake
+
+# ── Step 9: LangFuse observability ──
+# Required for tracing. The pipeline runs without it -- workflow/tracing.py
+# degrades to a no-op when the package or the keys are absent -- but the LLM
+# calls in ai_mapper and doc_generator then go unrecorded.
+langfuse>=3.0

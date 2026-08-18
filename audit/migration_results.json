@@ -1,0 +1,81 @@
+{
+  "run_at": "2026-08-12T19:29:17.144120+00:00",
+  "target_backend": "snowflake",
+  "full_reload": false,
+  "tables_migrated": 5,
+  "total_rows_migrated": 52128,
+  "table_results": [
+    {
+      "table": "dept_master",
+      "mode": "full",
+      "rows_migrated": 8,
+      "rows_in_target_after": 8,
+      "is_incremental": false,
+      "retries_used": {
+        "extract": 0,
+        "load": 0
+      },
+      "watermark_column": null,
+      "watermark_value_after": null
+    },
+    {
+      "table": "patient_records",
+      "mode": "full",
+      "rows_migrated": 12000,
+      "rows_in_target_after": 12000,
+      "is_incremental": false,
+      "retries_used": {
+        "extract": 0,
+        "load": 0
+      },
+      "watermark_column": "updated_ts",
+      "watermark_value_after": null
+    },
+    {
+      "table": "prv_tbl",
+      "mode": "full",
+      "rows_migrated": 40,
+      "rows_in_target_after": 40,
+      "is_incremental": false,
+      "retries_used": {
+        "extract": 0,
+        "load": 0
+      },
+      "watermark_column": null,
+      "watermark_value_after": null
+    },
+    {
+      "table": "enc_log",
+      "mode": "full",
+      "rows_migrated": 25000,
+      "rows_in_target_after": 25000,
+      "is_incremental": false,
+      "retries_used": {
+        "extract": 0,
+        "load": 0
+      },
+      "watermark_column": "enc_dt",
+      "watermark_value_after": "2026-08-01 17:59:42"
+    },
+    {
+      "table": "dx_codes",
+      "mode": "full",
+      "rows_migrated": 15080,
+      "rows_in_target_after": 15080,
+      "is_incremental": false,
+      "retries_used": {
+        "extract": 0,
+        "load": 0
+      },
+      "watermark_column": null,
+      "watermark_value_after": null
+    }
+  ],
+  "log": [
+    "[dept_master] full load: 8 rows extracted and loaded; target now holds 8.",
+    "[patient_records] full load: 12000 rows extracted and loaded; target now holds 12000.",
+    "[prv_tbl] full load: 40 rows extracted and loaded; target now holds 40.",
+    "[enc_log] full load: 25000 rows extracted and loaded; target now holds 25000.",
+    "[dx_codes] full load: 15080 rows extracted and loaded; target now holds 15080."
+  ]
+}
